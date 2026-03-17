@@ -1,20 +1,36 @@
-// import { listings } from "../data/mockListings";
-// import ListingCard from "../components/ListingCard";
-
-// function Listings() {
-//     return (
-//         <div>
-//             <h1>Listings</h1>
-
-//             {listings.map((listing) => (
-//                 <ListingCard key={listing.id} listing={listing} />
-//             ))}
-//         </div>
-//     );
-// }
+import ListingCard from "../components/ListingCard";
+import { listings } from "../data/mockListings";
 
 function Listings() {
-    return <h1>Listings Page</h1>;
+    return (
+        <div style={styles.page}>
+            <h1 style={styles.heading}>Available Listings</h1>
+
+            <div style={styles.grid}>
+                {listings.map((listing) => (
+                    <ListingCard key={listing.id} listing={listing} />
+                ))}
+            </div>
+        </div>
+    );
 }
+
+const styles = {
+    page: {
+        padding: "40px",
+        backgroundColor: "#F8FAFC",
+        minHeight: "100vh",
+    },
+    heading: {
+        fontSize: "32px",
+        marginBottom: "24px",
+        color: "#0F172A",
+    },
+    grid: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "20px",
+    },
+};
 
 export default Listings;
