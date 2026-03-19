@@ -10,26 +10,35 @@ function Listings() {
       listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       listing.location.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
   return (
     <div style={styles.page}>
-      <h1 style={styles.heading}>Available Listings</h1>
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <p style={styles.eyebrow}>Browse Properties</p>
+          <h1 style={styles.heading}>Available Listings</h1>
+          <p style={styles.subtext}>
+            Explore homes and apartments accross Zambia.
+          </p>
+        </div>
 
-      <input
-        type="text"
-        placeholder="Search by title or location..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        style={styles.searchInput}
-      />
+        <input
+          type="text"
+          placeholder="Search by title or location..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={styles.searchInput}
+        />
 
-      <div style={styles.grid}>
-        {filteredListings.length > 0 ? (
-          filteredListings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
-          ))
-        ) : (
-          <p style={styles.noResults}>No listings found.</p>
-        )}
+        <div style={styles.grid}>
+          {filteredListings.length > 0 ? (
+            filteredListings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))
+          ) : (
+            <p style={styles.noResults}>No listings found.</p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -37,34 +46,54 @@ function Listings() {
 
 const styles = {
   page: {
-    padding: "40px",
     backgroundColor: "#F8FAFC",
     minHeight: "100vh",
+    padding: "60px 20px 80px",
+  },
+  container: {
+    maxWidth: "1200px",
+    margin: "0 auto",
+  },
+  header: {
+    marginBottom: "28px",
+  },
+  eyebrow: {
+    fontSize: "14px",
+    textTransform: "uppercase",
+    letterSpacing: "1.5px",
+    color: "#C29A4B",
+    fontWeight: "700",
+    marginBottom: "10px",
   },
   heading: {
     fontSize: "32px",
     marginBottom: "24px",
     color: "#0F172A",
   },
+  subtext: {
+    fontSize: "18px",
+    color: "#64748B",
+  },
   searchInput: {
     width: "100%",
-    maxWidth: "400px",
-    padding: "12px 16px",
-    marginBottom: "30px",
+    maxWidth: "420px",
+    padding: "14px 18px",
+    marginBottom: "32px",
     fontSize: "16px",
     border: "1px solid #CBD5E1",
-    borderRadius: "10px",
+    borderRadius: "12px",
     outline: "none",
+    backgroundColor: "white",
   },
   grid: {
     display: "flex",
     flexWrap: "wrap",
-    gap: "20px",
+    gap: "24px",
   },
   noResults: {
     fontSize: "18px",
-    color: "#475569"
-  }
+    color: "#475569",
+  },
 };
 
 export default Listings;

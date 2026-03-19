@@ -6,29 +6,32 @@ function PropertyDetails() {
   const property = listings.find((item) => item.id === Number(id));
 
   if (!property) {
-    return <h1>Property not found</h1>;
+    return (
+      <div style={styles.page}>
+        <div style={styles.container}>
+          <h1 style={styles.title}>Property not found</h1>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-        <img src={property.image} alt={property.title} style={styles.image} />
+        <div style={styles.imageSection}>
+          <img src={property.image} alt={property.title} style={styles.image} />
+        </div>
 
         <div style={styles.infoSection}>
+          <p style={styles.eyebrow}>Property Details</p>
           <h1 style={styles.title}>{property.title}</h1>
+          <p style={styles.price}>{property.price}</p>
 
-          <p style={styles.price}>
-            <strong>Price:</strong> {property.price}
-          </p>
-          <p style={styles.text}>
-            <strong>Location:</strong> {property.location}
-          </p>
-          <p style={styles.text}>
-            <strong>Bedrooms:</strong> {property.bedrooms}
-          </p>
-          <p style={styles.text}>
-            <strong>Bathrooms:</strong> {property.bathrooms}
-          </p>
+          <div style={styles.meta}>
+            <span>{property.bedrooms} Bedrooms </span>
+            <span>{property.bathrooms} Bathrooms </span>
+            <span>{property.location}</span>
+          </div>
 
           <p style={styles.description}>
             This property is a great option for buyers looking for comfort,
@@ -46,58 +49,73 @@ const styles = {
   page: {
     minHeight: "100vh",
     backgroundColor: "#F8FAFC",
-    padding: "40px 20px",
+    padding: "60px 20px 90px",
   },
   container: {
-    maxWidth: "1100px",
+    maxWidth: "1200px",
     margin: "0 auto",
-    display: "40px",
+    display: "flex",
     gap: "40px",
-    alignItems: "flex-start",
     flexWrap: "wrap",
+    alignItems: "flex-start",
+  },
+  imageSection: {
+    flex: "1",
+    minWidth: "320px"
   },
   image: {
     width: "100%",
-    maxWidth: "520px",
-    height: "340px",
+    height: "420px",
     objectFit: "cover",
-    borderRadius: "16px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+    borderRadius: "20px",
+    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
   },
   infoSection: {
     flex: "1",
-    minWidth: "280px",
+    minWidth: "320px",
+  },
+  eyebrow: {
+    fontSize: "14px",
+    textTransform: "uppercase",
+    letterSpacing: "1.5px",
+    color: "#C29A4B",
+    fontWeight: "700",
+    marginBottom: "12px",
   },
   title: {
     fontSize: "48px",
-    marginBottom: "20px",
+    lineHeight: "1.15",
     color: "#0F172A",
+    marginBottom: "12px",
   },
   price: {
-    fontSize: "28px",
-    fontWeight: "bold",
-    marginBottom: "16px",
+    fontSize: "32px",
+    fontWeight: "800",
     color: "#0F172A",
+    marginBottom: "22px",
   },
-  text: {
-    fontSize: "22px",
-    marginBottom: "12px",
-    color: "#334155",
+  meta: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    fontSize: "18px",
+    color: "#475569",
+    marginBottom: "30px",
   },
   description: {
-    marginTop: "24px",
     fontSize: "18px",
-    lineHeight: "1.6",
+    lineHeight: "1.8",
     color: "#475569",
+    marginBottom: "30px",
   },
   button: {
-    marginTop: "24px",
     backgroundColor: "#0F172A",
     color: "white",
     border: "none",
     padding: "14px 24px",
-    borderRadius: "10px",
+    borderRadius: "12px",
     fontSize: "16px",
+    fontWeight: "700",
     cursor: "pointer",
   },
 };
