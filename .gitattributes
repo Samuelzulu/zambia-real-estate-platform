@@ -1,0 +1,5 @@
+*.jsx text=auto
+*.js text=auto
+*.css text=auto
+*.html text=auto
+*.json text=auto
