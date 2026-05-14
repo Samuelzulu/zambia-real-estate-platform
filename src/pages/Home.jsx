@@ -14,7 +14,7 @@ function Home() {
           <h1 style={styles.heroTitle}>Find Trusted Real Estate in Zambia</h1>
 
           <p style={styles.heroText}>
-            Browse verified property listings and connect with trustedreal
+            Browse verified property listings and connect with trusted real
             estate agents across Zambia.
           </p>
 
