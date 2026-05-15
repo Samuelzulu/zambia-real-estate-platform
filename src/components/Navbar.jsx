@@ -6,6 +6,7 @@ function Navbar() {
       <div style={styles.logo}>ZRP</div>
       <div style={styles.links}>
         <Link to="/" style={styles.link}>Home</Link>
+        <Link to="/customer-dashboard" style={styles.link}>Dashboard</Link>
         <Link to="/listings" style={styles.link}>Listings</Link>
         <Link to="/agents" style={styles.link}>Agents</Link>
         <Link to="/login" style={styles.link}>Login</Link>
