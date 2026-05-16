@@ -20,11 +20,17 @@ function Register() {
     const next = {};
     if (!form.fullName.trim()) next.fullName = "Full name is required";
     if (!form.email.trim()) next.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) next.email = "Enter a valid email";
+    else if (!/\S+@\S+\.\S+/.test(form.email))
+      next.email = "Enter a valid email";
     if (!form.password) next.password = "Password is required";
-    else if (form.password.length < 6) next.password = "Password must be at least 6 characters";
-    if (!form.confirmPassword) next.confirmPassword = "Please confirm your password";
-    else if (form.password !== form.confirmPassword) next.confirmPassword = "Passwords do not match";
+    else if (form.password.length < 6)
+      next.password = "Password must be at least 6 characters";
+    if (!form.confirmPassword)
+      next.confirmPassword = "Please confirm your password";
+    else if (form.password !== form.confirmPassword)
+      next.confirmPassword = "Passwords do not match";
+    if (role === "agent" && !form.zieaId?.trim())
+      next.zieaId = "ZIEA registration number is required";
     return next;
   };
 
@@ -43,7 +49,6 @@ function Register() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-
         {/* Brand */}
         <div style={styles.brand}>
           <span style={styles.brandText}>ZRP</span>
@@ -58,7 +63,9 @@ function Register() {
           <button
             type="button"
             onClick={() => setRole("customer")}
-            style={role === "customer" ? styles.roleActive : styles.roleInactive}
+            style={
+              role === "customer" ? styles.roleActive : styles.roleInactive
+            }
           >
             I'm a Customer
           </button>
@@ -72,16 +79,40 @@ function Register() {
         </div>
 
         {role === "agent" && (
-          <p style={styles.agentNote}>
-            Agent accounts are subject to verification before listings go live.
-          </p>
+          <>
+            <p style={styles.agentNote}>
+              Agent accounts are subject to verification before listings go
+              live.
+            </p>
+            <div style={styles.fieldGroup}>
+              <label htmlFor="zieaId" style={styles.label}>
+                ZIEA Registration Number
+              </label>
+              <input
+                id="zieaId"
+                name="zieaId"
+                type="text"
+                value={form.zieaId || ""}
+                onChange={handleChange}
+                placeholder="e.g. ZIEA-2024-00123"
+                style={{
+                  ...styles.input,
+                  border: errors.zieaId
+                    ? "1px solid #EF4444"
+                    : "1px solid #CBD5E1",
+                }}
+              />
+              {errors.zieaId && <p style={styles.error}>{errors.zieaId}</p>}
+            </div>
+          </>
         )}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-
           {/* Full Name */}
           <div style={styles.fieldGroup}>
-            <label htmlFor="fullName" style={styles.label}>Full name</label>
+            <label htmlFor="fullName" style={styles.label}>
+              Full name
+            </label>
             <input
               id="fullName"
               name="fullName"
@@ -91,7 +122,9 @@ function Register() {
               placeholder="John Banda"
               style={{
                 ...styles.input,
-                border: errors.fullName ? "1px solid #EF4444" : "1px solid #CBD5E1",
+                border: errors.fullName
+                  ? "1px solid #EF4444"
+                  : "1px solid #CBD5E1",
               }}
             />
             {errors.fullName && <p style={styles.error}>{errors.fullName}</p>}
@@ -99,7 +132,9 @@ function Register() {
 
           {/* Email */}
           <div style={styles.fieldGroup}>
-            <label htmlFor="email" style={styles.label}>Email address</label>
+            <label htmlFor="email" style={styles.label}>
+              Email address
+            </label>
             <input
               id="email"
               name="email"
@@ -109,7 +144,9 @@ function Register() {
               placeholder="you@example.com"
               style={{
                 ...styles.input,
-                border: errors.email ? "1px solid #EF4444" : "1px solid #CBD5E1",
+                border: errors.email
+                  ? "1px solid #EF4444"
+                  : "1px solid #CBD5E1",
               }}
             />
             {errors.email && <p style={styles.error}>{errors.email}</p>}
@@ -117,7 +154,9 @@ function Register() {
 
           {/* Password */}
           <div style={styles.fieldGroup}>
-            <label htmlFor="password" style={styles.label}>Password</label>
+            <label htmlFor="password" style={styles.label}>
+              Password
+            </label>
             <input
               id="password"
               name="password"
@@ -127,7 +166,9 @@ function Register() {
               placeholder="Min. 6 characters"
               style={{
                 ...styles.input,
-                border: errors.password ? "1px solid #EF4444" : "1px solid #CBD5E1",
+                border: errors.password
+                  ? "1px solid #EF4444"
+                  : "1px solid #CBD5E1",
               }}
             />
             {errors.password && <p style={styles.error}>{errors.password}</p>}
@@ -135,7 +176,9 @@ function Register() {
 
           {/* Confirm Password */}
           <div style={styles.fieldGroup}>
-            <label htmlFor="confirmPassword" style={styles.label}>Confirm password</label>
+            <label htmlFor="confirmPassword" style={styles.label}>
+              Confirm password
+            </label>
             <input
               id="confirmPassword"
               name="confirmPassword"
@@ -145,10 +188,14 @@ function Register() {
               placeholder="••••••••"
               style={{
                 ...styles.input,
-                border: errors.confirmPassword ? "1px solid #EF4444" : "1px solid #CBD5E1",
+                border: errors.confirmPassword
+                  ? "1px solid #EF4444"
+                  : "1px solid #CBD5E1",
               }}
             />
-            {errors.confirmPassword && <p style={styles.error}>{errors.confirmPassword}</p>}
+            {errors.confirmPassword && (
+              <p style={styles.error}>{errors.confirmPassword}</p>
+            )}
           </div>
 
           <button type="submit" style={styles.button}>
@@ -166,7 +213,6 @@ function Register() {
         <Link to="/login" style={styles.loginLink}>
           Sign in
         </Link>
-
       </div>
     </div>
   );
