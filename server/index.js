@@ -1,23 +1,34 @@
-const express = require('express')
-const cors = require('cors')
-const dotenv = require('dotenv')
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
 
-dotenv.config()
+dotenv.config();
 
-const app = express()
+const app = express();
 
 // Middleware
-app.use(cors())
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
 
 // Test route
-app.get('/', (req, res) => {
-    res.json({ message: 'ZRP API is running' })
-})
+app.get("/", (req, res) => {
+  res.json({ message: "ZRP API is running" });
+});
 
 // Port
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
-})
+  console.log(`Server running on port ${PORT}`);
+});
+
+const pool = require("./config/db");
+
+// Test database connection
+pool.query("SELECT NOW()", (err, res) => {
+  if (err) {
+    console.error("Database connection failed:", err);
+  } else {
+    console.log("Database connected:", res.rows[0].now);
+  }
+});
