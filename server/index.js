@@ -47,3 +47,9 @@ pool.query("SELECT NOW()", (err, res) => {
     console.log("Database connected:", res.rows[0].now);
   }
 });
+
+// near the top with other requires
+const listingRoutes = require("./routes/listings");
+
+// after your auth routes line
+app.use("/api/listings", listingRoutes);
