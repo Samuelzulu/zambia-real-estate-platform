@@ -4,9 +4,18 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
+// Port
+const PORT = process.env.PORT || 3000;
+
 const app = express();
 
 const authRoutes = require("./routes/auth");
+
+const agentRoutes = require("./routes/agents");
+
+const listingRoutes = require("./routes/listings");
+
+const pool = require("./config/db");
 
 // Middleware
 app.use(cors());
@@ -30,14 +39,9 @@ app.get("/api/agent-only", verifyToken, requireRole("agent"), (req, res) => {
   res.json({ message: "Welcome agent", user: req.user });
 });
 
-// Port
-const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-const pool = require("./config/db");
 
 // Test database connection
 pool.query("SELECT NOW()", (err, res) => {
@@ -48,8 +52,8 @@ pool.query("SELECT NOW()", (err, res) => {
   }
 });
 
-// near the top with other requires
-const listingRoutes = require("./routes/listings");
-
 // after your auth routes line
 app.use("/api/listings", listingRoutes);
+
+// after your listings routes line
+app.use("/api/agents", agentRoutes);
