@@ -17,6 +17,8 @@ const listingRoutes = require("./routes/listings");
 
 const pool = require("./config/db");
 
+const inquiryRoutes = require("./routes/inquiries");
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -57,3 +59,6 @@ app.use("/api/listings", listingRoutes);
 
 // after your listings routes line
 app.use("/api/agents", agentRoutes);
+
+// after agents routes line
+app.use("/api/inquiries", inquiryRoutes);
