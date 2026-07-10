@@ -21,6 +21,8 @@ const inquiryRoutes = require("./routes/inquiries");
 
 const favoriteRoutes = require("./routes/favorites");
 
+const reportRoutes = require('./routes/reports')
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -63,3 +65,5 @@ app.use("/api/agents", agentRoutes);
 app.use("/api/inquiries", inquiryRoutes);
 
 app.use("/api/favorites", favoriteRoutes);
+
+app.use('/api/reports', reportRoutes)
