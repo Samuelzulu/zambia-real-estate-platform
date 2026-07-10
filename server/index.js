@@ -19,6 +19,8 @@ const pool = require("./config/db");
 
 const inquiryRoutes = require("./routes/inquiries");
 
+const favoriteRoutes = require("./routes/favorites");
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -54,11 +56,10 @@ pool.query("SELECT NOW()", (err, res) => {
   }
 });
 
-// after your auth routes line
 app.use("/api/listings", listingRoutes);
 
-// after your listings routes line
 app.use("/api/agents", agentRoutes);
 
-// after agents routes line
 app.use("/api/inquiries", inquiryRoutes);
+
+app.use("/api/favorites", favoriteRoutes);
