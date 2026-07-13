@@ -32,7 +32,7 @@ function Navbar() {
         </Link>
 
         {/* Show dashboard link based on role when logged in */}
-        {user && user.role === "customer" && (
+        {/* {user && user.role === "customer" && (
           <Link to="/customer-dashboard" style={styles.link}>
             Dashboard
           </Link>
@@ -46,7 +46,7 @@ function Navbar() {
           <Link to="/admin-dashboard" style={styles.link}>
             Dashboard
           </Link>
-        )}
+        )} */}
       </div>
 
       {/* Auth buttons */}

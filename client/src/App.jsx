@@ -1,4 +1,6 @@
 import { Routes, Route } from "react-router-dom";
+import { useRole } from "./context/RoleContext";
+import { Navigate } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -18,13 +20,21 @@ import AdminDashboard from "./pages/AdminDashboard";
 import VerificationReview from "./pages/VerificationReview";
 import Reports from "./pages/Reports";
 
+function HomeRoute() {
+  const { user } = useRole();
+  if (!user) return <Home />;
+  if (user.role === "agent") return <Navigate to="/agent-dashboard" />;
+  if (user.role === "admin") return <Navigate to="/admin-dashboard" />;
+  return <Navigate to="/customer-dashboard" />;
+}
+
 function App() {
   return (
     <>
       <Navbar />
 
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<HomeRoute />} />
         <Route path="/listings" element={<Listings />} />
         <Route path="/listings/:id" element={<PropertyDetails />} />
         <Route path="/agents" element={<AgentDirectory />} />
