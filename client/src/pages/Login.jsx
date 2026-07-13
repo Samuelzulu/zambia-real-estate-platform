@@ -1,10 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useRole } from "../context/RoleContext";
+import { loginUser } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
+  const { login } = useRole();
+  const navigate = useNavigate();
 
   const validate = () => {
     const next = {};
@@ -14,7 +19,7 @@ function Login() {
     return next;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const next = validate();
     if (Object.keys(next).length > 0) {
@@ -22,14 +27,21 @@ function Login() {
       return;
     }
     setErrors({});
-    // Backend integration will go here
-    alert("Login submitted (backend not connected yet)");
+    try {
+      const res = await loginUser({ email, password });
+      login(res.data.user, res.data.token);
+      const role = res.data.user.role;
+      if (role === "agent") navigate("/agent-dashboard");
+      else if (role === "admin") navigate("/admin-dashboard");
+      else navigate("/customer-dashboard");
+    } catch (err) {
+      setErrors({ general: err.response?.data?.error || "Login failed" });
+    }
   };
 
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-
         {/* Logo / Brand */}
         <div style={styles.brand}>
           <span style={styles.brandText}>ZRP</span>
@@ -40,10 +52,11 @@ function Login() {
         <p style={styles.subtext}>Sign in to your account to continue</p>
 
         <form onSubmit={handleSubmit} style={styles.form}>
-
           {/* Email */}
           <div style={styles.fieldGroup}>
-            <label htmlFor="email" style={styles.label}>Email address</label>
+            <label htmlFor="email" style={styles.label}>
+              Email address
+            </label>
             <input
               id="email"
               type="text"
@@ -52,7 +65,9 @@ function Login() {
               placeholder="you@example.com"
               style={{
                 ...styles.input,
-                border: errors.email ? "1px solid #EF4444" : "1px solid #CBD5E1",
+                border: errors.email
+                  ? "1px solid #EF4444"
+                  : "1px solid #CBD5E1",
               }}
             />
             {errors.email && <p style={styles.error}>{errors.email}</p>}
@@ -61,7 +76,9 @@ function Login() {
           {/* Password */}
           <div style={styles.fieldGroup}>
             <div style={styles.labelRow}>
-              <label htmlFor="password" style={styles.label}>Password</label>
+              <label htmlFor="password" style={styles.label}>
+                Password
+              </label>
               <span style={styles.forgotLink}>Forgot password?</span>
             </div>
             <input
@@ -72,11 +89,15 @@ function Login() {
               placeholder="••••••••"
               style={{
                 ...styles.input,
-                border: errors.password ? "1px solid #EF4444" : "1px solid #CBD5E1",
+                border: errors.password
+                  ? "1px solid #EF4444"
+                  : "1px solid #CBD5E1",
               }}
             />
             {errors.password && <p style={styles.error}>{errors.password}</p>}
           </div>
+
+          {errors.general && <p style={styles.error}>{errors.general}</p>}
 
           {/* Submit */}
           <button type="submit" style={styles.button}>
@@ -95,7 +116,6 @@ function Login() {
         <Link to="/register" style={styles.registerLink}>
           Create an account
         </Link>
-
       </div>
     </div>
   );

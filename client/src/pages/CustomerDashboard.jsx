@@ -1,47 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { listings } from "../data/mockListings";
-
-// Mock saved listings and inquiries for now — backend will fetch per user later
-const mockSavedListings = [listings[0], listings[2]];
-
-const mockInquiries = [
-  {
-    id: 1,
-    property: "3 Bedroom House in Lusaka",
-    agent: "Chanda Mutale",
-    date: "2026-05-10",
-    status: "Pending",
-  },
-  {
-    id: 2,
-    property: "Family Home in Kitwe",
-    agent: "Mwila Bwalya",
-    date: "2026-05-08",
-    status: "Replied",
-  },
-];
+import { useRole } from "../context/RoleContext";
+import { getFavorites, getMyInquiries } from "../services/api";
 
 function CustomerDashboard() {
+  const { user } = useRole();
   const [activeTab, setActiveTab] = useState("saved");
+  const [savedListings, setSavedListings] = useState([]);
+  const [inquiries, setInquiries] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Placeholder user — backend will provide real user data
-  const user = {
-    name: "Samuel Zulu",
-    email: "samuel@example.com",
-    joined: "May 2026",
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [favRes, inqRes] = await Promise.all([
+          getFavorites(),
+          getMyInquiries(),
+        ]);
+        setSavedListings(favRes.data);
+        setInquiries(inqRes.data);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const joinedDate = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      })
+    : "Recently";
 
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-
         {/* Welcome header */}
         <div style={styles.header}>
           <div>
             <p style={styles.eyebrow}>My Dashboard</p>
-            <h1 style={styles.heading}>Welcome back, {user.name.split(" ")[0]}</h1>
-            <p style={styles.subtext}>{user.email} · Member since {user.joined}</p>
+            <h1 style={styles.heading}>
+              Welcome back, {user?.full_name?.split(" ")[0] || "there"}
+            </h1>
+            <p style={styles.subtext}>
+              {user?.email} · Member since {joinedDate}
+            </p>
           </div>
           <Link to="/listings" style={styles.browseButton}>
             Browse Listings
@@ -51,16 +57,16 @@ function CustomerDashboard() {
         {/* Stats cards */}
         <div style={styles.statsRow}>
           <div style={styles.statCard}>
-            <span style={styles.statNumber}>{mockSavedListings.length}</span>
+            <span style={styles.statNumber}>{savedListings.length}</span>
             <span style={styles.statLabel}>Saved Properties</span>
           </div>
           <div style={styles.statCard}>
-            <span style={styles.statNumber}>{mockInquiries.length}</span>
+            <span style={styles.statNumber}>{inquiries.length}</span>
             <span style={styles.statLabel}>Inquiries Sent</span>
           </div>
           <div style={styles.statCard}>
             <span style={styles.statNumber}>
-              {mockInquiries.filter((i) => i.status === "Replied").length}
+              {inquiries.filter((i) => i.status === "replied").length}
             </span>
             <span style={styles.statLabel}>Replies Received</span>
           </div>
@@ -70,19 +76,25 @@ function CustomerDashboard() {
         <div style={styles.tabs}>
           <button
             onClick={() => setActiveTab("saved")}
-            style={activeTab === "saved" ? styles.tabActive : styles.tabInactive}
+            style={
+              activeTab === "saved" ? styles.tabActive : styles.tabInactive
+            }
           >
             Saved Properties
           </button>
           <button
             onClick={() => setActiveTab("inquiries")}
-            style={activeTab === "inquiries" ? styles.tabActive : styles.tabInactive}
+            style={
+              activeTab === "inquiries" ? styles.tabActive : styles.tabInactive
+            }
           >
             My Inquiries
           </button>
           <button
             onClick={() => setActiveTab("profile")}
-            style={activeTab === "profile" ? styles.tabActive : styles.tabInactive}
+            style={
+              activeTab === "profile" ? styles.tabActive : styles.tabInactive
+            }
           >
             Account Settings
           </button>
@@ -90,29 +102,26 @@ function CustomerDashboard() {
 
         {/* Tab content */}
         <div style={styles.tabContent}>
-
           {/* Saved Properties */}
           {activeTab === "saved" && (
             <div>
-              {mockSavedListings.length > 0 ? (
+              {loading ? (
+                <p style={{ color: "#64748B" }}>Loading saved properties...</p>
+              ) : savedListings.length > 0 ? (
                 <div style={styles.savedGrid}>
-                  {mockSavedListings.map((listing) => (
+                  {savedListings.map((item) => (
                     <Link
-                      key={listing.id}
-                      to={`/listings/${listing.id}`}
+                      key={item.id}
+                      to={`/listings/${item.listing_id}`}
                       style={styles.savedCard}
                     >
-                      <img
-                        src={listing.image}
-                        alt={listing.title}
-                        style={styles.savedImage}
-                      />
+                      <div style={styles.savedImagePlaceholder} />
                       <div style={styles.savedInfo}>
-                        <p style={styles.savedPrice}>{listing.price}</p>
-                        <h3 style={styles.savedTitle}>{listing.title}</h3>
-                        <p style={styles.savedLocation}>{listing.location}</p>
+                        <p style={styles.savedPrice}>{item.price}</p>
+                        <h3 style={styles.savedTitle}>{item.title}</h3>
+                        <p style={styles.savedLocation}>{item.location}</p>
                         <p style={styles.savedMeta}>
-                          {listing.bedrooms} Beds · {listing.bathrooms} Baths
+                          {item.bedrooms} Beds · {item.bathrooms} Baths
                         </p>
                       </div>
                     </Link>
@@ -120,8 +129,12 @@ function CustomerDashboard() {
                 </div>
               ) : (
                 <div style={styles.emptyState}>
-                  <p style={styles.emptyText}>You haven't saved any properties yet.</p>
-                  <Link to="/listings" style={styles.emptyLink}>Browse listings →</Link>
+                  <p style={styles.emptyText}>
+                    You haven't saved any properties yet.
+                  </p>
+                  <Link to="/listings" style={styles.emptyLink}>
+                    Browse listings →
+                  </Link>
                 </div>
               )}
             </div>
@@ -130,32 +143,24 @@ function CustomerDashboard() {
           {/* Inquiries */}
           {activeTab === "inquiries" && (
             <div>
-              {mockInquiries.length > 0 ? (
+              {loading ? (
+                <p style={{ color: "#64748B" }}>Loading inquiries...</p>
+              ) : inquiries.length > 0 ? (
                 <table style={styles.table}>
                   <thead>
                     <tr>
                       <th style={styles.th}>Property</th>
                       <th style={styles.th}>Agent</th>
                       <th style={styles.th}>Date</th>
-                      <th style={styles.th}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {mockInquiries.map((inquiry) => (
+                    {inquiries.map((inquiry) => (
                       <tr key={inquiry.id}>
-                        <td style={styles.td}>{inquiry.property}</td>
-                        <td style={styles.td}>{inquiry.agent}</td>
-                        <td style={styles.td}>{inquiry.date}</td>
+                        <td style={styles.td}>{inquiry.listing_title}</td>
+                        <td style={styles.td}>{inquiry.agent_name}</td>
                         <td style={styles.td}>
-                          <span
-                            style={
-                              inquiry.status === "Replied"
-                                ? styles.statusReplied
-                                : styles.statusPending
-                            }
-                          >
-                            {inquiry.status}
-                          </span>
+                          {new Date(inquiry.created_at).toLocaleDateString()}
                         </td>
                       </tr>
                     ))}
@@ -163,8 +168,12 @@ function CustomerDashboard() {
                 </table>
               ) : (
                 <div style={styles.emptyState}>
-                  <p style={styles.emptyText}>You haven't sent any inquiries yet.</p>
-                  <Link to="/agents" style={styles.emptyLink}>Find an agent →</Link>
+                  <p style={styles.emptyText}>
+                    You haven't sent any inquiries yet.
+                  </p>
+                  <Link to="/agents" style={styles.emptyLink}>
+                    Find an agent →
+                  </Link>
                 </div>
               )}
             </div>
@@ -175,14 +184,14 @@ function CustomerDashboard() {
             <div style={styles.profileSection}>
               <h2 style={styles.profileHeading}>Account Settings</h2>
               <p style={styles.profileNote}>
-                Profile editing will be available once the backend is connected.
+                Profile editing will be available in a future update.
               </p>
               <div style={styles.profileFields}>
                 <div style={styles.profileField}>
                   <label style={styles.profileLabel}>Full name</label>
                   <input
                     type="text"
-                    defaultValue={user.name}
+                    defaultValue={user?.full_name}
                     disabled
                     style={styles.profileInput}
                   />
@@ -191,16 +200,16 @@ function CustomerDashboard() {
                   <label style={styles.profileLabel}>Email address</label>
                   <input
                     type="text"
-                    defaultValue={user.email}
+                    defaultValue={user?.email}
                     disabled
                     style={styles.profileInput}
                   />
                 </div>
                 <div style={styles.profileField}>
-                  <label style={styles.profileLabel}>Password</label>
+                  <label style={styles.profileLabel}>Role</label>
                   <input
-                    type="password"
-                    defaultValue="placeholder"
+                    type="text"
+                    defaultValue={user?.role}
                     disabled
                     style={styles.profileInput}
                   />
@@ -211,7 +220,6 @@ function CustomerDashboard() {
               </button>
             </div>
           )}
-
         </div>
       </div>
     </div>
@@ -297,7 +305,6 @@ const styles = {
     gap: "8px",
     marginBottom: "24px",
     borderBottom: "2px solid #E2E8F0",
-    paddingBottom: "0",
   },
   tabActive: {
     padding: "10px 20px",
@@ -338,11 +345,10 @@ const styles = {
     overflow: "hidden",
     width: "280px",
   },
-  savedImage: {
+  savedImagePlaceholder: {
     width: "100%",
     height: "160px",
-    objectFit: "cover",
-    display: "block",
+    backgroundColor: "#E2E8F0",
   },
   savedInfo: {
     padding: "16px",
@@ -408,24 +414,6 @@ const styles = {
     fontSize: "14px",
     color: "#0F172A",
     borderBottom: "1px solid #F1F5F9",
-  },
-  statusReplied: {
-    display: "inline-block",
-    padding: "3px 10px",
-    backgroundColor: "#DCFCE7",
-    color: "#15803D",
-    borderRadius: "20px",
-    fontSize: "12px",
-    fontWeight: "700",
-  },
-  statusPending: {
-    display: "inline-block",
-    padding: "3px 10px",
-    backgroundColor: "#FEF9C3",
-    color: "#854D0E",
-    borderRadius: "20px",
-    fontSize: "12px",
-    fontWeight: "700",
   },
   profileSection: {
     backgroundColor: "#FFFFFF",

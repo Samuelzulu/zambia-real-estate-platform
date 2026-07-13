@@ -1,27 +1,45 @@
-import { useState } from "react";
 import AgentCard from "../components/AgentCard";
-import { agents } from "../data/mockAgents";
+import { getAgents } from "../services/api";
+import { useState, useEffect } from "react";
 
 function AgentDirectory() {
+  const [agents, setAgents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterVerified, setFilterVerified] = useState(false);
   const [filterLocation, setFilterLocation] = useState("");
+
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const res = await getAgents();
+        setAgents(res.data);
+      } catch (err) {
+        setError("Failed to load agents");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAgents();
+  }, []);
 
   const locations = [...new Set(agents.map((a) => a.location))].sort();
 
   const filtered = agents.filter((agent) => {
     const matchesSearch =
-      agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agent.agency.toLowerCase().includes(searchTerm.toLowerCase());
+      agent.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agent.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesVerified = filterVerified ? agent.verified : true;
-    const matchesLocation = filterLocation ? agent.location === filterLocation : true;
+    const matchesLocation = filterLocation
+      ? agent.location === filterLocation
+      : true;
     return matchesSearch && matchesVerified && matchesLocation;
   });
 
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-
         {/* Header */}
         <div style={styles.header}>
           <p style={styles.eyebrow}>Find Your Agent</p>
@@ -30,6 +48,9 @@ function AgentDirectory() {
             Browse verified real estate agents across Zambia.
           </p>
         </div>
+
+        {loading && <p style={{ color: "#64748B" }}>Loading agents...</p>}
+        {error && <p style={{ color: "#EF4444" }}>{error}</p>}
 
         {/* Filters */}
         <div style={styles.filtersRow}>
@@ -48,7 +69,9 @@ function AgentDirectory() {
           >
             <option value="">All locations</option>
             {locations.map((loc) => (
-              <option key={loc} value={loc}>{loc}</option>
+              <option key={loc} value={loc}>
+                {loc}
+              </option>
             ))}
           </select>
 
@@ -78,7 +101,6 @@ function AgentDirectory() {
         ) : (
           <p style={styles.noResults}>No agents found matching your search.</p>
         )}
-
       </div>
     </div>
   );

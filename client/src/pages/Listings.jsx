@@ -1,9 +1,26 @@
-import { useState } from "react";
 import ListingCard from "../components/ListingCard";
-import { listings } from "../data/mockListings";
+import { useState, useEffect } from "react";
+import { getListings } from "../services/api";
 
 function Listings() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        const res = await getListings();
+        setListings(res.data);
+      } catch (err) {
+        setError("Failed to load listings");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchListings();
+  }, []);
 
   const filteredListings = listings.filter(
     (listing) =>
@@ -29,6 +46,9 @@ function Listings() {
           onChange={(e) => setSearchTerm(e.target.value)}
           style={styles.searchInput}
         />
+
+        {loading && <p style={{ color: "#64748B" }}>Loading listings...</p>}
+        {error && <p style={{ color: "#EF4444" }}>{error}</p>}
 
         <div style={styles.grid}>
           {filteredListings.length > 0 ? (

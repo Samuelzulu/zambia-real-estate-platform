@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useRole } from "../context/RoleContext";
+import { registerUser } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 function Register() {
   const [role, setRole] = useState("customer");
@@ -10,6 +13,9 @@ function Register() {
     confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
+
+  const { login } = useRole();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -34,7 +40,7 @@ function Register() {
     return next;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const next = validate();
     if (Object.keys(next).length > 0) {
@@ -42,8 +48,27 @@ function Register() {
       return;
     }
     setErrors({});
-    // Backend integration will go here
-    alert(`Account created as ${role} (backend not connected yet)`);
+    try {
+      await registerUser({
+        full_name: form.fullName,
+        email: form.email,
+        password: form.password,
+        role,
+        ziea_number: form.zieaId || null,
+      });
+      // Auto login after registration
+      const { loginUser } = await import("../services/api");
+      const res = await loginUser({
+        email: form.email,
+        password: form.password,
+      });
+      login(res.data.user, res.data.token);
+      navigate("/customer-dashboard");
+    } catch (err) {
+      setErrors({
+        general: err.response?.data?.error || "Registration failed",
+      });
+    }
   };
 
   return (
@@ -197,6 +222,8 @@ function Register() {
               <p style={styles.error}>{errors.confirmPassword}</p>
             )}
           </div>
+
+          {errors.general && <p style={styles.error}>{errors.general}</p>}
 
           <button type="submit" style={styles.button}>
             Create Account
