@@ -4,52 +4,44 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-// Port
-const PORT = process.env.PORT || 3000;
-
 const app = express();
-
-const authRoutes = require("./routes/auth");
-
-const agentRoutes = require("./routes/agents");
-
-const listingRoutes = require("./routes/listings");
-
-const pool = require("./config/db");
-
-const inquiryRoutes = require("./routes/inquiries");
-
-const favoriteRoutes = require("./routes/favorites");
-
-const reportRoutes = require('./routes/reports')
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Routes
+const authRoutes = require("./routes/auth");
+const agentRoutes = require("./routes/agents");
+const listingRoutes = require("./routes/listings");
+const inquiryRoutes = require("./routes/inquiries");
+const favoriteRoutes = require("./routes/favorites");
+const reportRoutes = require("./routes/reports");
+const { verifyToken, requireRole } = require("./middleware/authMiddleware");
+
 app.use("/api/auth", authRoutes);
+app.use("/api/listings", listingRoutes);
+app.use("/api/agents", agentRoutes);
+app.use("/api/inquiries", inquiryRoutes);
+app.use("/api/favorites", favoriteRoutes);
+app.use("/api/reports", reportRoutes);
 
 // Test route
 app.get("/", (req, res) => {
   res.json({ message: "ZRP API is running" });
 });
 
-const { verifyToken, requireRole } = require("./middleware/authMiddleware");
-
-// Protected test route
+// Protected test routes
 app.get("/api/protected", verifyToken, (req, res) => {
   res.json({ message: "You are authorized", user: req.user });
 });
 
-// Agent only route test
 app.get("/api/agent-only", verifyToken, requireRole("agent"), (req, res) => {
   res.json({ message: "Welcome agent", user: req.user });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-// Test database connection
+// Database connection
+const pool = require("./config/db");
 pool.query("SELECT NOW()", (err, res) => {
   if (err) {
     console.error("Database connection failed:", err);
@@ -58,12 +50,9 @@ pool.query("SELECT NOW()", (err, res) => {
   }
 });
 
-app.use("/api/listings", listingRoutes);
+// Port
+const PORT = process.env.PORT || 3000;
 
-app.use("/api/agents", agentRoutes);
-
-app.use("/api/inquiries", inquiryRoutes);
-
-app.use("/api/favorites", favoriteRoutes);
-
-app.use('/api/reports', reportRoutes)
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
