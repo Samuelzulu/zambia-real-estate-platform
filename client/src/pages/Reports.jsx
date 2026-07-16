@@ -1,0 +1,48 @@
+import React from 'react';
+import DashboardSidebar from '../components/DashboardSidebar';
+import { useDashboardData } from '../hooks/useListingForm';
+
+const Reports = () => {
+  const { listings, stats } = useDashboardData();
+
+  const byType = listings.reduce((acc, listing) => {
+    acc[listing.type] = (acc[listing.type] || 0) + 1;
+    return acc;
+  }, {});
+
+  const byLocation = listings.reduce((acc, listing) => {
+    acc[listing.location] = (acc[listing.location] || 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <div style={{ display: 'flex', minHeight: '80vh' }}>
+      <DashboardSidebar />
+      <main style={{ flex: 1, padding: '24px' }}>
+        <h2>Reports</h2>
+
+        <section style={{ marginBottom: '18px' }}>
+          <h4>Summary</h4>
+          <ul>
+            <li>Total listings: {stats.total}</li>
+            <li>Approved: {stats.approved}</li>
+            <li>Pending: {stats.pending}</li>
+            <li>Rejected: {stats.rejected}</li>
+          </ul>
+        </section>
+
+        <section style={{ marginBottom: '18px' }}>
+          <h4>By property type</h4>
+          <ul>{Object.entries(byType).map(([type, count]) => <li key={type}>{type}: {count}</li>)}</ul>
+        </section>
+
+        <section>
+          <h4>By location</h4>
+          <ul>{Object.entries(byLocation).map(([location, count]) => <li key={location}>{location}: {count}</li>)}</ul>
+        </section>
+      </main>
+    </div>
+  );
+};
+
+export default Reports;

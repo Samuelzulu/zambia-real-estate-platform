@@ -1,0 +1,91 @@
+import { useCallback, useMemo, useState } from 'react';
+
+const defaultListingValues = {
+  title: '',
+  description: '',
+  price: '',
+  location: '',
+  type: 'sale',
+  status: 'pending',
+};
+
+const validateListing = (listing) => {
+  const errors = {};
+  if (!listing.title.trim()) errors.title = 'Title is required';
+  if (!listing.description.trim()) errors.description = 'Description is required';
+  if (!listing.location.trim()) errors.location = 'Location is required';
+  if (!listing.price) errors.price = 'Price is required';
+  else if (Number.isNaN(Number(listing.price)) || Number(listing.price) <= 0)
+    errors.price = 'Price must be a number greater than 0';
+  return errors;
+};
+
+export const useListingForm = (initialValues = defaultListingValues) => {
+  const [values, setValues] = useState(initialValues);
+  const [errors, setErrors] = useState({});
+
+  const onChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setValues((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const reset = useCallback(() => {
+    setValues(defaultListingValues);
+    setErrors({});
+  }, []);
+
+  const setFormValues = useCallback((updates) => {
+    setValues((prev) => ({ ...prev, ...updates }));
+  }, []);
+
+  const validate = useCallback(() => {
+    const next = validateListing(values);
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }, [values]);
+
+  return { values, errors, onChange, reset, validate, setFormValues };
+};
+
+const storageKey = 'listings';
+const loadListings = () => {
+  try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); }
+  catch { return []; }
+};
+const saveListings = (listings) => {
+  localStorage.setItem(storageKey, JSON.stringify(listings));
+};
+
+export const useDashboardData = () => {
+  const [listings, setListings] = useState(() => loadListings());
+
+  const setAndPersist = useCallback((updater) => {
+    setListings((current) => {
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      saveListings(next);
+      return next;
+    });
+  }, []);
+
+  const addListing = useCallback((newListing) => {
+    const id = `LPR-${Date.now()}`;
+    setAndPersist((prev) => [...prev, { ...newListing, id, status: 'pending' }]);
+  }, [setAndPersist]);
+
+  const updateListing = useCallback((id, updates) => {
+    setAndPersist((prev) => prev.map((l) => (l.id === id ? { ...l, ...updates } : l)));
+  }, [setAndPersist]);
+
+  const approveListing = useCallback((id) => updateListing(id, { status: 'approved' }), [updateListing]);
+  const rejectListing = useCallback((id) => updateListing(id, { status: 'rejected' }), [updateListing]);
+
+  const stats = useMemo(() => {
+    const total = listings.length;
+    const approved = listings.filter((l) => l.status === 'approved').length;
+    const pending = listings.filter((l) => l.status === 'pending').length;
+    const rejected = listings.filter((l) => l.status === 'rejected').length;
+    return { total, approved, pending, rejected };
+  }, [listings]);
+
+  return { listings, stats, addListing, updateListing, approveListing, rejectListing, setListings: setAndPersist };
+};

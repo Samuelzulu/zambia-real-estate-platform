@@ -1,0 +1,73 @@
+import React from 'react';
+import DashboardSidebar from '../components/DashboardSidebar';
+import { useDashboardData } from '../hooks/useListingForm';
+
+const AdminDashboard = () => {
+  const { listings, stats, approveListing, rejectListing } = useDashboardData();
+
+  const pending = listings.filter((listing) => listing.status === 'pending');
+
+  return (
+    <div style={{ display: 'flex', minHeight: '80vh' }}>
+      <DashboardSidebar />
+      <main style={{ flex: 1, padding: '24px' }}>
+        <h2>Admin Dashboard</h2>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '18px' }}>
+          <div style={{ padding: '12px', border: '1px solid #ddd', borderRadius: '6px', flex: 1 }}>
+            <h4>Total Listings</h4>
+            <p>{stats.total}</p>
+          </div>
+          <div style={{ padding: '12px', border: '1px solid #ddd', borderRadius: '6px', flex: 1 }}>
+            <h4>Approved</h4>
+            <p>{stats.approved}</p>
+          </div>
+          <div style={{ padding: '12px', border: '1px solid #ddd', borderRadius: '6px', flex: 1 }}>
+            <h4>Pending</h4>
+            <p>{stats.pending}</p>
+          </div>
+          <div style={{ padding: '12px', border: '1px solid #ddd', borderRadius: '6px', flex: 1 }}>
+            <h4>Rejected</h4>
+            <p>{stats.rejected}</p>
+          </div>
+        </div>
+
+        <section>
+          <h3>Pending Verification</h3>
+          {pending.length === 0 ? (
+            <p>No pending listings for review.</p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ borderBottom: '1px solid #ccc', padding: '8px' }}>Title</th>
+                  <th style={{ borderBottom: '1px solid #ccc', padding: '8px' }}>Location</th>
+                  <th style={{ borderBottom: '1px solid #ccc', padding: '8px' }}>Price</th>
+                  <th style={{ borderBottom: '1px solid #ccc', padding: '8px' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pending.map((item) => (
+                  <tr key={item.id}>
+                    <td style={{ padding: '8px' }}>{item.title}</td>
+                    <td style={{ padding: '8px' }}>{item.location}</td>
+                    <td style={{ padding: '8px' }}></td>
+                    <td style={{ padding: '8px', display: 'flex', gap: '8px' }}>
+                      <button onClick={() => approveListing(item.id)} style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>
+                        Approve
+                      </button>
+                      <button onClick={() => rejectListing(item.id)} style={{ background: '#c62828', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>
+                        Reject
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+};
+
+export default AdminDashboard;

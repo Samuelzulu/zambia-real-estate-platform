@@ -1,0 +1,29 @@
+import { NavLink } from 'react-router-dom';
+
+const links = [
+  { to: '/agent-dashboard', text: 'Agent Dashboard' },
+  { to: '/admin-dashboard', text: 'Admin Dashboard' },
+  { to: '/verification-review', text: 'Verification Review' },
+  { to: '/reports', text: 'Reports' },
+  { to: '/add-listing', text: 'Add Listing' },
+];
+
+const DashboardSidebar = () => (
+  <aside style={{ width: '230px', padding: '16px', borderRight: '1px solid #ddd' }}>
+    <h3>Dashboard</h3>
+    <nav>
+      {links.map((link) => (
+        <div key={link.to} style={{ marginBottom: '8px' }}>
+          <NavLink
+            to={link.to}
+            style={({ isActive }) => ({ color: isActive ? '#2e7d32' : '#333', textDecoration: 'none', fontWeight: isActive ? '700' : '500' })}
+          >
+            {link.text}
+          </NavLink>
+        </div>
+      ))}
+    </nav>
+  </aside>
+);
+
+export default DashboardSidebar;

@@ -1,0 +1,53 @@
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import DashboardSidebar from '../components/DashboardSidebar';
+
+const AgentDashboard = () => {
+  const [listings, setListings] = useState([]);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('listings') || '[]');
+    setListings(saved);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', minHeight: '80vh' }}>
+      <DashboardSidebar />
+      <main style={{ padding: '24px', flex: 1 }}>
+        <h2>Agent Dashboard</h2>
+        <Link to="/add-listing" style={{ marginBottom: '12px', display: 'inline-block', color: '#1976d2' }}>+ Add New Listing</Link>
+
+        {listings.length === 0 ? (
+          <p>No listings yet. Add one to get started.</p>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ borderBottom: '1px solid #aaa', padding: '10px' }}>Title</th>
+                <th style={{ borderBottom: '1px solid #aaa', padding: '10px' }}>Location</th>
+                <th style={{ borderBottom: '1px solid #aaa', padding: '10px' }}>Price</th>
+                <th style={{ borderBottom: '1px solid #aaa', padding: '10px' }}>Status</th>
+                <th style={{ borderBottom: '1px solid #aaa', padding: '10px' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listings.map((listing) => (
+                <tr key={listing.id}>
+                  <td style={{ padding: '8px' }}>{listing.title}</td>
+                  <td style={{ padding: '8px' }}>{listing.location}</td>
+                  <td style={{ padding: '8px' }}>${listing.price}</td>
+                  <td style={{ padding: '8px' }}>{listing.status}</td>
+                  <td style={{ padding: '8px' }}>
+                    <Link to={`/edit-listing?id=${listing.id}`}>Edit</Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default AgentDashboard;

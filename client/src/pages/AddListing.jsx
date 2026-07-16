@@ -1,0 +1,44 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import FormInput from '../components/FormInput';
+import { useListingForm, useDashboardData } from '../hooks/useListingForm';
+
+const AddListing = () => {
+  const { values, errors, onChange, reset, validate } = useListingForm();
+  const { addListing } = useDashboardData();
+  const navigate = useNavigate();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    addListing(values);
+    alert('Listing saved to localStorage.');
+    reset();
+    navigate('/agent-dashboard');
+  };
+
+  return (
+    <main style={{ padding: '24px', maxWidth: '700px', margin: '0 auto' }}>
+      <h2>Add Listing</h2>
+      <form onSubmit={handleSubmit}>
+        <FormInput label="Title" name="title" value={values.title} onChange={onChange} error={errors.title} />
+        <FormInput label="Description" name="description" value={values.description} onChange={onChange} error={errors.description} />
+        <FormInput label="Location" name="location" value={values.location} onChange={onChange} error={errors.location} />
+        <FormInput label="Price" name="price" type="number" value={values.price} onChange={onChange} error={errors.price} />
+        <div style={{ marginBottom: '12px' }}>
+          <label htmlFor="type">Type</label>
+          <select name="type" id="type" value={values.type} onChange={onChange} style={{ width: '100%', padding: '8px', borderRadius: '4px' }}>
+            <option value="sale">Sale</option>
+            <option value="rent">Rent</option>
+          </select>
+        </div>
+        <button type="submit" style={{ padding: '10px 18px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px' }}>
+          Save Listing
+        </button>
+      </form>
+    </main>
+  );
+};
+
+export default AddListing;

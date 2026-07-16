@@ -1,0 +1,38 @@
+import React from 'react';
+import DashboardSidebar from '../components/DashboardSidebar';
+import { useDashboardData } from '../hooks/useListingForm';
+
+const VerificationReview = () => {
+  const { listings, approveListing, rejectListing } = useDashboardData();
+  const pending = listings.filter((listing) => listing.status === 'pending');
+
+  return (
+    <div style={{ display: 'flex', minHeight: '80vh' }}>
+      <DashboardSidebar />
+      <main style={{ flex: 1, padding: '24px' }}>
+        <h2>Verification Review</h2>
+        {pending.length === 0 ? (
+          <p>There are no pending listings to verify.</p>
+        ) : (
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            {pending.map((listing) => (
+              <li key={listing.id} style={{ border: '1px solid #ddd', padding: '12px', marginBottom: '10px', borderRadius: '6px' }}>
+                <div><strong>{listing.title}</strong> ({listing.location}) - </div>
+                <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                  <button onClick={() => approveListing(listing.id)} style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>
+                    Approve
+                  </button>
+                  <button onClick={() => rejectListing(listing.id)} style={{ background: '#c62828', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '4px' }}>
+                    Reject
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default VerificationReview;

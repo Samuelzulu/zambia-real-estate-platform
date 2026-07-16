@@ -1,0 +1,21 @@
+import React from 'react';
+
+const FormInput = ({ label, name, type = 'text', value, onChange, error, placeholder }) => {
+  return (
+    <div style={{ marginBottom: '12px' }}>
+      {label && <label htmlFor={name} style={{ display: 'block', fontWeight: 600, marginBottom: '4px' }}>{label}</label>}
+      <input
+        id={name}
+        name={name}
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={onChange}
+        style={{ width: '100%', padding: '8px 10px', border: error ? '1px solid #f44336' : '1px solid #ccc', borderRadius: '4px' }}
+      />
+      {error && <div style={{ color: '#f44336', fontSize: '12px', marginTop: '4px' }}>{error}</div>}
+    </div>
+  );
+};
+
+export default FormInput;
