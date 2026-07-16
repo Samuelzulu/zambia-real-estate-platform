@@ -44,4 +44,12 @@ export const removeFavorite = (listing_id) =>
 // Reports
 export const createReport = (data) => API.post("/reports", data);
 
+// Admin
+export const getPendingAgents = () => API.get("/agents/admin/pending");
+export const verifyAgent = (id, verified) =>
+  API.put(`/agents/admin/${id}/verify`, { verified });
+export const getAllReports = () => API.get("/reports");
+export const updateReportStatus = (id, status) =>
+  API.put(`/reports/${id}`, { status });
+
 export default API;

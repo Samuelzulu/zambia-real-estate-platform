@@ -47,7 +47,7 @@ function App() {
         <Route path="/agent-dashboard" element={<AgentDashboard />} />
 
         <Route path="/add-listing" element={<AddListing />} />
-        <Route path="/edit-listing" element={<EditListing />} />
+        <Route path="/edit-listing/:id" element={<EditListing />} />
 
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/verification-review" element={<VerificationReview />} />
