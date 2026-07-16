@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { listings } from "../data/mockListings";
 import { agents } from "../data/mockAgents";
+import { createInquiry } from "../services/api";
 
 function PropertyDetails() {
   const { id } = useParams();
@@ -19,7 +20,9 @@ function PropertyDetails() {
       <div style={styles.page}>
         <div style={styles.container}>
           <h1 style={{ color: "#0F172A" }}>Property not found.</h1>
-          <Link to="/listings" style={styles.backLink}>← Back to Listings</Link>
+          <Link to="/listings" style={styles.backLink}>
+            ← Back to Listings
+          </Link>
         </div>
       </div>
     );
@@ -39,12 +42,13 @@ function PropertyDetails() {
     const errs = {};
     if (!inquiry.name.trim()) errs.name = "Name is required";
     if (!inquiry.email.trim()) errs.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(inquiry.email)) errs.email = "Enter a valid email";
+    else if (!/\S+@\S+\.\S+/.test(inquiry.email))
+      errs.email = "Enter a valid email";
     if (!inquiry.message.trim()) errs.message = "Message is required";
     return errs;
   };
 
-  const handleInquirySubmit = (e) => {
+  const handleInquirySubmit = async (e) => {
     e.preventDefault();
     const errs = validateInquiry();
     if (Object.keys(errs).length > 0) {
@@ -52,19 +56,29 @@ function PropertyDetails() {
       return;
     }
     setInquiryErrors({});
-    setInquirySent(true);
+    try {
+      await createInquiry({
+        listing_id: property.id,
+        message: inquiry.message,
+      });
+      setInquirySent(true);
+    } catch (err) {
+      setInquiryErrors({
+        general: err.response?.data?.error || "Failed to send inquiry",
+      });
+    }
   };
 
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-
         {/* Back link */}
-        <Link to="/listings" style={styles.backLink}>← Back to Listings</Link>
+        <Link to="/listings" style={styles.backLink}>
+          ← Back to Listings
+        </Link>
 
         {/* Main layout */}
         <div style={styles.layout}>
-
           {/* Left — Image gallery */}
           <div style={styles.gallerySection}>
             <div style={styles.mainImageWrapper}>
@@ -82,12 +96,17 @@ function PropertyDetails() {
                   onClick={() => setActiveImage(i)}
                   style={{
                     ...styles.thumbnail,
-                    border: activeImage === i
-                      ? "2px solid #C29A4B"
-                      : "2px solid transparent",
+                    border:
+                      activeImage === i
+                        ? "2px solid #C29A4B"
+                        : "2px solid transparent",
                   }}
                 >
-                  <img src={img.src} alt={img.label} style={styles.thumbImage} />
+                  <img
+                    src={img.src}
+                    alt={img.label}
+                    style={styles.thumbImage}
+                  />
                 </button>
               ))}
             </div>
@@ -103,11 +122,15 @@ function PropertyDetails() {
             <div style={styles.metaRow}>
               <div style={styles.metaItem}>
                 <span style={styles.metaIcon}>🛏</span>
-                <span style={styles.metaText}>{property.bedrooms} Bedrooms</span>
+                <span style={styles.metaText}>
+                  {property.bedrooms} Bedrooms
+                </span>
               </div>
               <div style={styles.metaItem}>
                 <span style={styles.metaIcon}>🚿</span>
-                <span style={styles.metaText}>{property.bathrooms} Bathrooms</span>
+                <span style={styles.metaText}>
+                  {property.bathrooms} Bathrooms
+                </span>
               </div>
               <div style={styles.metaItem}>
                 <span style={styles.metaIcon}>📍</span>
@@ -144,7 +167,11 @@ function PropertyDetails() {
 
             {/* Agent preview card */}
             <div style={styles.agentCard}>
-              <img src={agent.image} alt={agent.name} style={styles.agentAvatar} />
+              <img
+                src={agent.image}
+                alt={agent.name}
+                style={styles.agentAvatar}
+              />
               <div style={styles.agentInfo}>
                 <p style={styles.agentLabel}>Listed by</p>
                 <p style={styles.agentName}>{agent.name}</p>
@@ -183,7 +210,9 @@ function PropertyDetails() {
                     <input
                       type="text"
                       value={inquiry.name}
-                      onChange={(e) => setInquiry({ ...inquiry, name: e.target.value })}
+                      onChange={(e) =>
+                        setInquiry({ ...inquiry, name: e.target.value })
+                      }
                       placeholder="John Banda"
                       style={{
                         ...styles.input,
@@ -202,7 +231,9 @@ function PropertyDetails() {
                     <input
                       type="text"
                       value={inquiry.email}
-                      onChange={(e) => setInquiry({ ...inquiry, email: e.target.value })}
+                      onChange={(e) =>
+                        setInquiry({ ...inquiry, email: e.target.value })
+                      }
                       placeholder="you@example.com"
                       style={{
                         ...styles.input,
@@ -238,6 +269,10 @@ function PropertyDetails() {
                     )}
                   </div>
 
+                  {inquiryErrors.general && (
+                    <p style={styles.errorText}>{inquiryErrors.general}</p>
+                  )}
+
                   <button type="submit" style={styles.submitButton}>
                     Send Inquiry
                   </button>
@@ -248,8 +283,8 @@ function PropertyDetails() {
                 <p style={styles.successIcon}>✓</p>
                 <h2 style={styles.successTitle}>Inquiry Sent!</h2>
                 <p style={styles.successText}>
-                  Your message has been sent to {agent.name}. They will get back to
-                  you at {inquiry.email}.
+                  Your message has been sent to {agent.name}. They will get back
+                  to you at {inquiry.email}.
                 </p>
                 <button
                   onClick={() => {
