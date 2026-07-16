@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useRole } from "../context/RoleContext";
-import { registerUser } from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { registerUser, loginUser } from "../services/api";
 
 function Register() {
   const [role, setRole] = useState("customer");
@@ -11,6 +10,7 @@ function Register() {
     email: "",
     password: "",
     confirmPassword: "",
+    zieaId: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -56,14 +56,15 @@ function Register() {
         role,
         ziea_number: form.zieaId || null,
       });
-      // Auto login after registration
-      const { loginUser } = await import("../services/api");
       const res = await loginUser({
         email: form.email,
         password: form.password,
       });
       login(res.data.user, res.data.token);
-      navigate("/customer-dashboard");
+      const userRole = res.data.user.role;
+      if (userRole === "agent") navigate("/agent-dashboard");
+      else if (userRole === "admin") navigate("/admin-dashboard");
+      else navigate("/customer-dashboard");
     } catch (err) {
       setErrors({
         general: err.response?.data?.error || "Registration failed",
@@ -117,7 +118,7 @@ function Register() {
                 id="zieaId"
                 name="zieaId"
                 type="text"
-                value={form.zieaId || ""}
+                value={form.zieaId}
                 onChange={handleChange}
                 placeholder="e.g. ZIEA-2024-00123"
                 style={{
@@ -133,7 +134,6 @@ function Register() {
         )}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          {/* Full Name */}
           <div style={styles.fieldGroup}>
             <label htmlFor="fullName" style={styles.label}>
               Full name
@@ -155,7 +155,6 @@ function Register() {
             {errors.fullName && <p style={styles.error}>{errors.fullName}</p>}
           </div>
 
-          {/* Email */}
           <div style={styles.fieldGroup}>
             <label htmlFor="email" style={styles.label}>
               Email address
@@ -177,7 +176,6 @@ function Register() {
             {errors.email && <p style={styles.error}>{errors.email}</p>}
           </div>
 
-          {/* Password */}
           <div style={styles.fieldGroup}>
             <label htmlFor="password" style={styles.label}>
               Password
@@ -199,7 +197,6 @@ function Register() {
             {errors.password && <p style={styles.error}>{errors.password}</p>}
           </div>
 
-          {/* Confirm Password */}
           <div style={styles.fieldGroup}>
             <label htmlFor="confirmPassword" style={styles.label}>
               Confirm password
@@ -230,7 +227,6 @@ function Register() {
           </button>
         </form>
 
-        {/* Divider */}
         <div style={styles.divider}>
           <div style={styles.dividerLine} />
           <span style={styles.dividerText}>Already have an account?</span>
