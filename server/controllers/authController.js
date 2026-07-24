@@ -24,7 +24,7 @@ const register = async (req, res) => {
     const result = await pool.query(
       `INSERT INTO users (full_name, email, password, role, ziea_number)
        VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, full_name, email, role`,
+       RETURNING id, full_name, email, role, ziea_number, verified, agency, bio, location, phone, photo_url, created_at`,
       [
         full_name,
         email,
@@ -84,6 +84,14 @@ const login = async (req, res) => {
         full_name: user.full_name,
         email: user.email,
         role: user.role,
+        ziea_number: user.ziea_number,
+        verified: user.verified,
+        agency: user.agency,
+        bio: user.bio,
+        location: user.location,
+        phone: user.phone,
+        photo_url: user.photo_url,
+        created_at: user.created_at,
       },
     });
   } catch (error) {

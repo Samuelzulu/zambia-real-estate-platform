@@ -1,14 +1,67 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useRole } from "../context/RoleContext";
-import { getListings, deleteListing, getAgentInquiries } from "../services/api";
+import {
+  getListings,
+  deleteListing,
+  getAgentInquiries,
+  updateAgentProfile,
+} from "../services/api";
 
 function AgentDashboard() {
-  const { user } = useRole();
+  const { user, updateUser } = useRole();
   const [listings, setListings] = useState([]);
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("listings");
+
+  const [profileForm, setProfileForm] = useState({
+    full_name: "",
+    ziea_number: "",
+    agency: "",
+    phone: "",
+    location: "",
+    bio: "",
+    photo_url: "",
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+    setProfileForm({
+      full_name: user.full_name || "",
+      ziea_number: user.ziea_number || "",
+      agency: user.agency || "",
+      phone: user.phone || "",
+      location: user.location || "",
+      bio: user.bio || "",
+      photo_url: user.photo_url || "",
+    });
+  }, [user]);
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    setProfileMessage(null);
+    try {
+      const res = await updateAgentProfile(profileForm);
+      updateUser(res.data);
+      setProfileMessage({ type: "success", text: "Profile updated." });
+    } catch (err) {
+      setProfileMessage({
+        type: "error",
+        text: err.response?.data?.error || "Failed to update profile.",
+      });
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,6 +161,14 @@ function AgentDashboard() {
           >
             Inquiries
           </button>
+          <button
+            onClick={() => setActiveTab("profile")}
+            style={
+              activeTab === "profile" ? styles.tabActive : styles.tabInactive
+            }
+          >
+            Profile
+          </button>
         </div>
 
         {/* Listings Tab */}
@@ -206,6 +267,103 @@ function AgentDashboard() {
               </table>
             )}
           </div>
+        )}
+
+        {/* Profile Tab */}
+        {activeTab === "profile" && (
+          <form style={styles.profileCard} onSubmit={handleProfileSubmit}>
+            <div style={styles.profileGrid}>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Full name</label>
+                <input
+                  name="full_name"
+                  value={profileForm.full_name}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>ZIEA registration number</label>
+                <input
+                  name="ziea_number"
+                  value={profileForm.ziea_number}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Agency</label>
+                <input
+                  name="agency"
+                  placeholder="e.g. Lusaka Prime Properties"
+                  value={profileForm.agency}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Phone</label>
+                <input
+                  name="phone"
+                  placeholder="e.g. +260 97 000 0000"
+                  value={profileForm.phone}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Primary area</label>
+                <input
+                  name="location"
+                  placeholder="e.g. Lusaka"
+                  value={profileForm.location}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Photo URL</label>
+                <input
+                  name="photo_url"
+                  placeholder="https://..."
+                  value={profileForm.photo_url}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+            </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Bio</label>
+              <textarea
+                name="bio"
+                rows={4}
+                placeholder="A short introduction customers will see on your profile"
+                value={profileForm.bio}
+                onChange={handleProfileChange}
+                style={styles.textarea}
+              />
+            </div>
+
+            {profileMessage && (
+              <p
+                style={
+                  profileMessage.type === "success"
+                    ? styles.profileSuccess
+                    : styles.profileError
+                }
+              >
+                {profileMessage.text}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              style={styles.addButton}
+              disabled={profileSaving}
+            >
+              {profileSaving ? "Saving..." : "Save profile"}
+            </button>
+          </form>
         )}
       </div>
     </div>
@@ -399,6 +557,59 @@ const styles = {
     color: "#C29A4B",
     fontWeight: "600",
     textDecoration: "none",
+  },
+  profileCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: "12px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+    padding: "28px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+    maxWidth: "700px",
+  },
+  profileGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "16px",
+  },
+  fieldGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  label: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  input: {
+    padding: "10px 14px",
+    fontSize: "14px",
+    border: "1px solid #CBD5E1",
+    borderRadius: "8px",
+    outline: "none",
+    color: "#0F172A",
+  },
+  textarea: {
+    padding: "10px 14px",
+    fontSize: "14px",
+    border: "1px solid #CBD5E1",
+    borderRadius: "8px",
+    outline: "none",
+    color: "#0F172A",
+    fontFamily: "inherit",
+    resize: "vertical",
+  },
+  profileSuccess: {
+    fontSize: "14px",
+    color: "#15803D",
+    margin: 0,
+  },
+  profileError: {
+    fontSize: "14px",
+    color: "#EF4444",
+    margin: 0,
   },
 };
 

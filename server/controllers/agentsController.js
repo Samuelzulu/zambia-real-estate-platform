@@ -4,7 +4,10 @@ const pool = require("../config/db");
 const getAllAgents = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, full_name, email, ziea_number, verified, created_at 
+      `SELECT id, full_name, email, ziea_number, verified, created_at,
+              agency, bio, location, phone, photo_url,
+              (SELECT COUNT(*)::int FROM listings
+                 WHERE listings.agent_id = users.id AND listings.status = 'approved') AS active_listings
        FROM users 
        WHERE role = 'agent' AND verified = true
        ORDER BY created_at DESC`,
@@ -21,7 +24,8 @@ const getAgentById = async (req, res) => {
   const { id } = req.params;
   try {
     const agentResult = await pool.query(
-      `SELECT id, full_name, email, ziea_number, verified, created_at
+      `SELECT id, full_name, email, ziea_number, verified, created_at,
+              agency, bio, location, phone, photo_url
        FROM users
        WHERE id = $1 AND role = 'agent'`,
       [id],
@@ -49,15 +53,18 @@ const getAgentById = async (req, res) => {
 
 // PUT update own profile
 const updateProfile = async (req, res) => {
-  const { full_name, ziea_number } = req.body;
+  const { full_name, ziea_number, agency, bio, location, phone, photo_url } =
+    req.body;
   const userId = req.user.userId;
 
   try {
     const result = await pool.query(
-      `UPDATE users SET full_name = $1, ziea_number = $2
-       WHERE id = $3
-       RETURNING id, full_name, email, ziea_number, verified`,
-      [full_name, ziea_number, userId],
+      `UPDATE users SET full_name = $1, ziea_number = $2, agency = $3,
+              bio = $4, location = $5, phone = $6, photo_url = $7
+       WHERE id = $8
+       RETURNING id, full_name, email, role, ziea_number, verified,
+                 agency, bio, location, phone, photo_url, created_at`,
+      [full_name, ziea_number, agency, bio, location, phone, photo_url, userId],
     );
     res.json(result.rows[0]);
   } catch (error) {

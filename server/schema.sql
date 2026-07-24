@@ -8,6 +8,11 @@ CREATE TABLE
         role VARCHAR(20) DEFAULT 'customer',
         ziea_number VARCHAR(50),
         verified BOOLEAN DEFAULT false,
+        agency VARCHAR(150),
+        bio TEXT,
+        location VARCHAR(100),
+        phone VARCHAR(30),
+        photo_url VARCHAR(500),
         created_at TIMESTAMP DEFAULT NOW ()
     );
 

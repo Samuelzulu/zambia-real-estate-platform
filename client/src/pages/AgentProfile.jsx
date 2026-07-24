@@ -1,52 +1,116 @@
 import { useParams, Link } from "react-router-dom";
-import { agents } from "../data/mockAgents";
-import { listings } from "../data/mockListings";
+import { useState, useEffect } from "react";
+import { getAgentById } from "../services/api";
 import VerifiedBadge from "../components/VerifiedBadge";
 import ListingCard from "../components/ListingCard";
 
+function initials(name) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join("");
+}
+
 function AgentProfile() {
   const { id } = useParams();
-  const agent = agents.find((a) => a.id === Number(id));
+  const [agent, setAgent] = useState(null);
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  if (!agent) {
+  useEffect(() => {
+    const fetchAgent = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await getAgentById(id);
+        setAgent(res.data.agent);
+        setListings(res.data.listings || []);
+      } catch (err) {
+        setError(
+          err.response?.status === 404
+            ? "Agent not found."
+            : "Failed to load agent profile.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAgent();
+  }, [id]);
+
+  if (loading) {
     return (
       <div style={styles.page}>
         <div style={styles.container}>
-          <h1 style={styles.notFound}>Agent not found.</h1>
-          <Link to="/agents" style={styles.backLink}>← Back to Agent Directory</Link>
+          <p style={{ color: "#64748B" }}>Loading agent profile...</p>
         </div>
       </div>
     );
   }
 
-  // For now show all listings as agent's listings (backend will filter by agent ID later)
-  const agentListings = listings.slice(0, agent.listings > listings.length ? listings.length : 2);
+  if (error || !agent) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.container}>
+          <h1 style={styles.notFound}>{error || "Agent not found."}</h1>
+          <Link to="/agents" style={styles.backLink}>
+            ← Back to Agent Directory
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const memberSince = agent.created_at
+    ? new Date(agent.created_at).toLocaleDateString(undefined, {
+        month: "long",
+        year: "numeric",
+      })
+    : "Recently";
 
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-
         {/* Back link */}
-        <Link to="/agents" style={styles.backLink}>← Back to Agent Directory</Link>
+        <Link to="/agents" style={styles.backLink}>
+          ← Back to Agent Directory
+        </Link>
 
         {/* Profile card */}
         <div style={styles.profileCard}>
-          <img src={agent.image} alt={agent.name} style={styles.avatar} />
+          {agent.photo_url ? (
+            <img
+              src={agent.photo_url}
+              alt={agent.full_name}
+              style={styles.avatar}
+            />
+          ) : (
+            <div style={styles.avatarFallback}>{initials(agent.full_name)}</div>
+          )}
 
           <div style={styles.profileInfo}>
             <div style={styles.nameRow}>
-              <h1 style={styles.name}>{agent.name}</h1>
+              <h1 style={styles.name}>{agent.full_name}</h1>
               {agent.verified && <VerifiedBadge />}
             </div>
-            <p style={styles.agency}>{agent.agency}</p>
-            <p style={styles.location}>📍 {agent.location}</p>
-            <p style={styles.bio}>{agent.bio}</p>
+            <p style={styles.agency}>{agent.agency || "Independent Agent"}</p>
+            {agent.location && (
+              <p style={styles.location}>📍 {agent.location}</p>
+            )}
+            {agent.bio && <p style={styles.bio}>{agent.bio}</p>}
+            <p style={styles.memberSince}>Member since {memberSince}</p>
 
             {/* Contact details */}
             <div style={styles.contactRow}>
-              <a href={`tel:${agent.phone}`} style={styles.contactItem}>
-                📞 {agent.phone}
-              </a>
+              {agent.phone && (
+                <a href={`tel:${agent.phone}`} style={styles.contactItem}>
+                  📞 {agent.phone}
+                </a>
+              )}
               <a href={`mailto:${agent.email}`} style={styles.contactItem}>
                 ✉️ {agent.email}
               </a>
@@ -57,9 +121,7 @@ function AgentProfile() {
               <a href={`mailto:${agent.email}`} style={styles.primaryButton}>
                 Contact Agent
               </a>
-              <button style={styles.reportButton}>
-                Report Agent
-              </button>
+              <button style={styles.reportButton}>Report Agent</button>
             </div>
           </div>
         </div>
@@ -67,27 +129,29 @@ function AgentProfile() {
         {/* Stats bar */}
         <div style={styles.statsBar}>
           <div style={styles.statItem}>
-            <span style={styles.statNumber}>{agent.listings}</span>
+            <span style={styles.statNumber}>{listings.length}</span>
             <span style={styles.statLabel}>Active Listings</span>
           </div>
           <div style={styles.statDivider} />
           <div style={styles.statItem}>
-            <span style={styles.statNumber}>{agent.location}</span>
+            <span style={styles.statNumber}>{agent.location || "—"}</span>
             <span style={styles.statLabel}>Primary Area</span>
           </div>
           <div style={styles.statDivider} />
           <div style={styles.statItem}>
-            <span style={styles.statNumber}>{agent.verified ? "Verified" : "Unverified"}</span>
+            <span style={styles.statNumber}>
+              {agent.verified ? "Verified" : "Unverified"}
+            </span>
             <span style={styles.statLabel}>Status</span>
           </div>
         </div>
 
         {/* Agent's listings */}
         <div style={styles.listingsSection}>
-          <h2 style={styles.sectionTitle}>Properties by {agent.name}</h2>
-          {agentListings.length > 0 ? (
+          <h2 style={styles.sectionTitle}>Properties by {agent.full_name}</h2>
+          {listings.length > 0 ? (
             <div style={styles.listingsGrid}>
-              {agentListings.map((listing) => (
+              {listings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
             </div>
@@ -95,7 +159,6 @@ function AgentProfile() {
             <p style={styles.noListings}>No active listings at the moment.</p>
           )}
         </div>
-
       </div>
     </div>
   );
@@ -142,6 +205,19 @@ const styles = {
     objectFit: "cover",
     flexShrink: 0,
   },
+  avatarFallback: {
+    width: "120px",
+    height: "120px",
+    borderRadius: "50%",
+    flexShrink: 0,
+    backgroundColor: "#0F172A",
+    color: "#FFFFFF",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "36px",
+    fontWeight: "700",
+  },
   profileInfo: {
     flex: 1,
     minWidth: "260px",
@@ -174,6 +250,11 @@ const styles = {
     fontSize: "15px",
     color: "#475569",
     lineHeight: "1.7",
+    margin: "0 0 12px 0",
+  },
+  memberSince: {
+    fontSize: "13px",
+    color: "#94A3B8",
     margin: "0 0 20px 0",
   },
   contactRow: {

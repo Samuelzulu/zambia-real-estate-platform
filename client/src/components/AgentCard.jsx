@@ -1,20 +1,41 @@
 import { Link } from "react-router-dom";
 import VerifiedBadge from "./VerifiedBadge";
 
+function initials(name) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join("");
+}
+
 function AgentCard({ agent }) {
   return (
     <Link to={`/agents/${agent.id}`} style={styles.link}>
       <div style={styles.card}>
-        <img src={agent.image} alt={agent.name} style={styles.avatar} />
+        {agent.photo_url ? (
+          <img
+            src={agent.photo_url}
+            alt={agent.full_name}
+            style={styles.avatar}
+          />
+        ) : (
+          <div style={styles.avatarFallback}>{initials(agent.full_name)}</div>
+        )}
         <div style={styles.content}>
           <div style={styles.nameRow}>
-            <h3 style={styles.name}>{agent.name}</h3>
+            <h3 style={styles.name}>{agent.full_name}</h3>
             {agent.verified && <VerifiedBadge />}
           </div>
-          <p style={styles.agency}>{agent.agency}</p>
-          <p style={styles.location}>📍 {agent.location}</p>
-          <p style={styles.bio}>{agent.bio}</p>
-          <p style={styles.listings}>{agent.listings} active listings</p>
+          <p style={styles.agency}>{agent.agency || "Independent Agent"}</p>
+          {agent.location && <p style={styles.location}>📍 {agent.location}</p>}
+          {agent.bio && <p style={styles.bio}>{agent.bio}</p>}
+          <p style={styles.listings}>
+            {agent.active_listings ?? 0} active listing
+            {agent.active_listings === 1 ? "" : "s"}
+          </p>
         </div>
       </div>
     </Link>
@@ -43,6 +64,19 @@ const styles = {
     borderRadius: "50%",
     objectFit: "cover",
     flexShrink: 0,
+  },
+  avatarFallback: {
+    width: "72px",
+    height: "72px",
+    borderRadius: "50%",
+    flexShrink: 0,
+    backgroundColor: "#0F172A",
+    color: "#FFFFFF",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "22px",
+    fontWeight: "700",
   },
   content: {
     flex: 1,

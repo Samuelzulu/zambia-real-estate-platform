@@ -27,8 +27,18 @@ export function RoleProvider({ children }) {
     localStorage.removeItem("role");
   };
 
+  const updateUser = (updates) => {
+    setUser((prev) => {
+      const next = { ...prev, ...updates };
+      localStorage.setItem("user", JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <RoleContext.Provider value={{ role, setRole, user, token, login, logout }}>
+    <RoleContext.Provider
+      value={{ role, setRole, user, token, login, logout, updateUser }}
+    >
       {children}
     </RoleContext.Provider>
   );
