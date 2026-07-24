@@ -31,8 +31,9 @@ function Login() {
       const res = await loginUser({ email, password });
       login(res.data.user, res.data.token);
       const role = res.data.user.role;
-      if (role === "agent") navigate("/agent-dashboard");
-      else if (role === "admin") navigate("/admin-dashboard");
+      const userRole = res.data.user.role;
+      if (userRole === "agent") navigate("/agent-dashboard");
+      else if (userRole === "admin") navigate("/admin-dashboard");
       else navigate("/customer-dashboard");
     } catch (err) {
       setErrors({ general: err.response?.data?.error || "Login failed" });
