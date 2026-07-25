@@ -29,6 +29,13 @@ export const getAgents = () => API.get("/agents");
 export const getAgentById = (id) => API.get(`/agents/${id}`);
 export const updateAgentProfile = (data) => API.put("/agents/profile", data);
 
+// Uploads — pass an array of File objects, get back { urls: [...] }
+export const uploadImages = (files) => {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("images", file));
+  return API.post("/uploads", formData);
+};
+
 // Inquiries
 export const createInquiry = (data) => API.post("/inquiries", data);
 export const getMyInquiries = () => API.get("/inquiries/my");

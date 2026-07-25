@@ -1,70 +1,125 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useRole } from "../context/RoleContext";
 import {
   getListings,
-  getAllReports,
-  getPendingAgents,
-  verifyAgent,
-  updateReportStatus,
+  deleteListing,
+  getAgentInquiries,
+  updateAgentProfile,
+  uploadImages,
 } from "../services/api";
 
-function AdminDashboard() {
+function AgentDashboard() {
+  const { user, updateUser } = useRole();
   const [listings, setListings] = useState([]);
-  const [pendingAgents, setPendingAgents] = useState([]);
-  const [reports, setReports] = useState([]);
+  const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("listings");
+
+  const [profileForm, setProfileForm] = useState({
+    full_name: "",
+    ziea_number: "",
+    agency: "",
+    phone: "",
+    location: "",
+    bio: "",
+    photo_url: "",
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+    setProfileForm({
+      full_name: user.full_name || "",
+      ziea_number: user.ziea_number || "",
+      agency: user.agency || "",
+      phone: user.phone || "",
+      location: user.location || "",
+      bio: user.bio || "",
+      photo_url: user.photo_url || "",
+    });
+  }, [user]);
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoUploading(true);
+    setPhotoError(null);
+    try {
+      const res = await uploadImages([file]);
+      setProfileForm((prev) => ({ ...prev, photo_url: res.data.urls[0] }));
+    } catch (err) {
+      setPhotoError(err.response?.data?.error || "Failed to upload photo");
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    setProfileMessage(null);
+    try {
+      const res = await updateAgentProfile(profileForm);
+      updateUser(res.data);
+      setProfileMessage({ type: "success", text: "Profile updated." });
+    } catch (err) {
+      setProfileMessage({
+        type: "error",
+        text: err.response?.data?.error || "Failed to update profile.",
+      });
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [listingsRes, reportsRes] = await Promise.all([
+        const [listingsRes, inquiriesRes] = await Promise.all([
           getListings(),
-          getAllReports(),
+          getAgentInquiries(),
         ]);
-        setListings(listingsRes.data);
-        setReports(reportsRes.data);
-
-        // Fetch pending agents
-        try {
-          const agentsRes = await getPendingAgents();
-          setPendingAgents(agentsRes.data);
-        } catch (err) {
-          console.error("Could not fetch pending agents:", err);
-        }
+        // Filter listings to only show this agent's listings
+        const myListings = listingsRes.data.filter(
+          (l) => l.agent_id === user?.id,
+        );
+        setListings(myListings);
+        setInquiries(inquiriesRes.data);
       } catch (err) {
-        console.error("Admin dashboard fetch error:", err);
+        console.error("Agent dashboard fetch error:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [user]);
 
-  const handleVerifyAgent = async (id, verified) => {
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this listing?"))
+      return;
     try {
-      await verifyAgent(id, verified);
-      setPendingAgents((prev) => prev.filter((a) => a.id !== id));
+      await deleteListing(id);
+      setListings((prev) => prev.filter((l) => l.id !== id));
     } catch (err) {
-      alert("Failed to update agent status");
+      alert("Failed to delete listing");
     }
   };
 
-  const handleUpdateReport = async (id, status) => {
-    try {
-      await updateReportStatus(id, status);
-      setReports((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status } : r)),
-      );
-    } catch (err) {
-      alert("Failed to update report");
-    }
-  };
-
-  const stats = {
-    total: listings.length,
-    approved: listings.filter((l) => l.status === "approved").length,
-    pending: listings.filter((l) => l.status === "pending").length,
-    rejected: listings.filter((l) => l.status === "rejected").length,
+  const statusStyle = (status) => {
+    if (status === "approved") return styles.statusApproved;
+    if (status === "rejected") return styles.statusRejected;
+    return styles.statusPending;
   };
 
   return (
@@ -72,72 +127,84 @@ function AdminDashboard() {
       <div style={styles.container}>
         {/* Header */}
         <div style={styles.header}>
-          <p style={styles.eyebrow}>Admin Portal</p>
-          <h1 style={styles.heading}>Admin Dashboard</h1>
-          <p style={styles.subtext}>Manage listings, agents, and reports.</p>
+          <div>
+            <p style={styles.eyebrow}>Agent Portal</p>
+            <h1 style={styles.heading}>
+              Welcome, {user?.full_name?.split(" ")[0] || "Agent"}
+            </h1>
+            <p style={styles.subtext}>{user?.email}</p>
+          </div>
+          <Link to="/add-listing" style={styles.addButton}>
+            + Add Listing
+          </Link>
         </div>
 
         {/* Stats */}
         <div style={styles.statsRow}>
           <div style={styles.statCard}>
-            <span style={styles.statNumber}>{stats.total}</span>
+            <span style={styles.statNumber}>{listings.length}</span>
             <span style={styles.statLabel}>Total Listings</span>
           </div>
           <div style={styles.statCard}>
-            <span style={styles.statNumber}>{stats.approved}</span>
+            <span style={styles.statNumber}>
+              {listings.filter((l) => l.status === "approved").length}
+            </span>
             <span style={styles.statLabel}>Approved</span>
           </div>
           <div style={styles.statCard}>
-            <span style={styles.statNumber}>{stats.pending}</span>
-            <span style={styles.statLabel}>Pending</span>
-          </div>
-          <div style={styles.statCard}>
-            <span style={styles.statNumber}>{pendingAgents.length}</span>
-            <span style={styles.statLabel}>Agents Awaiting Verification</span>
-          </div>
-          <div style={styles.statCard}>
             <span style={styles.statNumber}>
-              {reports.filter((r) => r.status === "pending").length}
+              {listings.filter((l) => l.status === "pending").length}
             </span>
-            <span style={styles.statLabel}>Open Reports</span>
+            <span style={styles.statLabel}>Pending Review</span>
+          </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{inquiries.length}</span>
+            <span style={styles.statLabel}>Inquiries</span>
           </div>
         </div>
 
         {/* Tabs */}
         <div style={styles.tabs}>
           <button
-            onClick={() => setActiveTab("overview")}
+            onClick={() => setActiveTab("listings")}
             style={
-              activeTab === "overview" ? styles.tabActive : styles.tabInactive
+              activeTab === "listings" ? styles.tabActive : styles.tabInactive
             }
           >
-            Listings
+            My Listings
           </button>
           <button
-            onClick={() => setActiveTab("agents")}
+            onClick={() => setActiveTab("inquiries")}
             style={
-              activeTab === "agents" ? styles.tabActive : styles.tabInactive
+              activeTab === "inquiries" ? styles.tabActive : styles.tabInactive
             }
           >
-            Agent Verification
+            Inquiries
           </button>
           <button
-            onClick={() => setActiveTab("reports")}
+            onClick={() => setActiveTab("profile")}
             style={
-              activeTab === "reports" ? styles.tabActive : styles.tabInactive
+              activeTab === "profile" ? styles.tabActive : styles.tabInactive
             }
           >
-            Reports
+            Profile
           </button>
         </div>
 
         {/* Listings Tab */}
-        {activeTab === "overview" && (
+        {activeTab === "listings" && (
           <div>
             {loading ? (
-              <p style={{ color: "#64748B" }}>Loading...</p>
+              <p style={{ color: "#64748B" }}>Loading listings...</p>
             ) : listings.length === 0 ? (
-              <p style={{ color: "#64748B" }}>No listings yet.</p>
+              <div style={styles.emptyState}>
+                <p style={styles.emptyText}>
+                  You haven't added any listings yet.
+                </p>
+                <Link to="/add-listing" style={styles.emptyLink}>
+                  Add your first listing →
+                </Link>
+              </div>
             ) : (
               <table style={styles.table}>
                 <thead>
@@ -146,6 +213,7 @@ function AdminDashboard() {
                     <th style={styles.th}>Location</th>
                     <th style={styles.th}>Price</th>
                     <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -155,18 +223,26 @@ function AdminDashboard() {
                       <td style={styles.td}>{listing.location}</td>
                       <td style={styles.td}>{listing.price}</td>
                       <td style={styles.td}>
-                        <span
-                          style={
-                            listing.status === "approved"
-                              ? styles.statusApproved
-                              : listing.status === "rejected"
-                                ? styles.statusRejected
-                                : styles.statusPending
-                          }
-                        >
+                        <span style={statusStyle(listing.status)}>
                           {listing.status}
                         </span>
                       </td>
+                      <td style={styles.td}>
+                        <div style={styles.actions}>
+                          <Link
+                            to={`/edit-listing/${listing.id}`}
+                            style={styles.editLink}
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(listing.id)}
+                            style={styles.deleteButton}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -175,52 +251,35 @@ function AdminDashboard() {
           </div>
         )}
 
-        {/* Agent Verification Tab */}
-        {activeTab === "agents" && (
+        {/* Inquiries Tab */}
+        {activeTab === "inquiries" && (
           <div>
             {loading ? (
-              <p style={{ color: "#64748B" }}>Loading...</p>
-            ) : pendingAgents.length === 0 ? (
-              <p style={{ color: "#64748B" }}>
-                No agents pending verification.
-              </p>
+              <p style={{ color: "#64748B" }}>Loading inquiries...</p>
+            ) : inquiries.length === 0 ? (
+              <div style={styles.emptyState}>
+                <p style={styles.emptyText}>No inquiries yet.</p>
+              </div>
             ) : (
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <th style={styles.th}>Name</th>
+                    <th style={styles.th}>Property</th>
+                    <th style={styles.th}>Customer</th>
                     <th style={styles.th}>Email</th>
-                    <th style={styles.th}>ZIEA Number</th>
-                    <th style={styles.th}>Registered</th>
-                    <th style={styles.th}>Actions</th>
+                    <th style={styles.th}>Message</th>
+                    <th style={styles.th}>Date</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingAgents.map((agent) => (
-                    <tr key={agent.id}>
-                      <td style={styles.td}>{agent.full_name}</td>
-                      <td style={styles.td}>{agent.email}</td>
+                  {inquiries.map((inquiry) => (
+                    <tr key={inquiry.id}>
+                      <td style={styles.td}>{inquiry.listing_title}</td>
+                      <td style={styles.td}>{inquiry.customer_name}</td>
+                      <td style={styles.td}>{inquiry.customer_email}</td>
+                      <td style={styles.td}>{inquiry.message}</td>
                       <td style={styles.td}>
-                        {agent.ziea_number || "Not provided"}
-                      </td>
-                      <td style={styles.td}>
-                        {new Date(agent.created_at).toLocaleDateString()}
-                      </td>
-                      <td style={styles.td}>
-                        <div style={styles.actions}>
-                          <button
-                            onClick={() => handleVerifyAgent(agent.id, true)}
-                            style={styles.approveButton}
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleVerifyAgent(agent.id, false)}
-                            style={styles.rejectButton}
-                          >
-                            Reject
-                          </button>
-                        </div>
+                        {new Date(inquiry.created_at).toLocaleDateString()}
                       </td>
                     </tr>
                   ))}
@@ -230,69 +289,116 @@ function AdminDashboard() {
           </div>
         )}
 
-        {/* Reports Tab */}
-        {activeTab === "reports" && (
-          <div>
-            {loading ? (
-              <p style={{ color: "#64748B" }}>Loading...</p>
-            ) : reports.length === 0 ? (
-              <p style={{ color: "#64748B" }}>No reports submitted.</p>
-            ) : (
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>Reporter</th>
-                    <th style={styles.th}>Listing</th>
-                    <th style={styles.th}>Reason</th>
-                    <th style={styles.th}>Status</th>
-                    <th style={styles.th}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reports.map((report) => (
-                    <tr key={report.id}>
-                      <td style={styles.td}>{report.reporter_name}</td>
-                      <td style={styles.td}>{report.listing_title || "N/A"}</td>
-                      <td style={styles.td}>{report.reason}</td>
-                      <td style={styles.td}>
-                        <span
-                          style={
-                            report.status === "resolved"
-                              ? styles.statusApproved
-                              : report.status === "dismissed"
-                                ? styles.statusRejected
-                                : styles.statusPending
-                          }
-                        >
-                          {report.status}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        <div style={styles.actions}>
-                          <button
-                            onClick={() =>
-                              handleUpdateReport(report.id, "resolved")
-                            }
-                            style={styles.approveButton}
-                          >
-                            Resolve
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleUpdateReport(report.id, "dismissed")
-                            }
-                            style={styles.rejectButton}
-                          >
-                            Dismiss
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Profile Tab */}
+        {activeTab === "profile" && (
+          <form style={styles.profileCard} onSubmit={handleProfileSubmit}>
+            <div style={styles.profileGrid}>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Full name</label>
+                <input
+                  name="full_name"
+                  value={profileForm.full_name}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>ZIEA registration number</label>
+                <input
+                  name="ziea_number"
+                  value={profileForm.ziea_number}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Agency</label>
+                <input
+                  name="agency"
+                  placeholder="e.g. Lusaka Prime Properties"
+                  value={profileForm.agency}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Phone</label>
+                <input
+                  name="phone"
+                  placeholder="e.g. +260 97 000 0000"
+                  value={profileForm.phone}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Primary area</label>
+                <input
+                  name="location"
+                  placeholder="e.g. Lusaka"
+                  value={profileForm.location}
+                  onChange={handleProfileChange}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Photo</label>
+                <div style={styles.photoRow}>
+                  {profileForm.photo_url ? (
+                    <img
+                      src={profileForm.photo_url}
+                      alt="Profile"
+                      style={styles.photoPreview}
+                    />
+                  ) : (
+                    <div style={styles.photoPreviewEmpty}>No photo</div>
+                  )}
+                  <label style={styles.photoUploadButton}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      disabled={photoUploading}
+                      style={{ display: "none" }}
+                    />
+                    {photoUploading ? "Uploading..." : "Change photo"}
+                  </label>
+                </div>
+                {photoError && <p style={styles.profileError}>{photoError}</p>}
+              </div>
+            </div>
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>Bio</label>
+              <textarea
+                name="bio"
+                rows={4}
+                placeholder="A short introduction customers will see on your profile"
+                value={profileForm.bio}
+                onChange={handleProfileChange}
+                style={styles.textarea}
+              />
+            </div>
+
+            {profileMessage && (
+              <p
+                style={
+                  profileMessage.type === "success"
+                    ? styles.profileSuccess
+                    : styles.profileError
+                }
+              >
+                {profileMessage.text}
+              </p>
             )}
-          </div>
+
+            <button
+              type="submit"
+              style={styles.addButton}
+              disabled={profileSaving || photoUploading}
+            >
+              {profileSaving ? "Saving..." : "Save profile"}
+            </button>
+          </form>
         )}
       </div>
     </div>
@@ -310,6 +416,11 @@ const styles = {
     margin: "0 auto",
   },
   header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+    gap: "16px",
     marginBottom: "32px",
   },
   eyebrow: {
@@ -330,6 +441,16 @@ const styles = {
     fontSize: "14px",
     color: "#64748B",
     margin: 0,
+  },
+  addButton: {
+    display: "inline-block",
+    padding: "12px 24px",
+    backgroundColor: "#C29A4B",
+    color: "#FFFFFF",
+    borderRadius: "10px",
+    fontSize: "14px",
+    fontWeight: "700",
+    textDecoration: "none",
   },
   statsRow: {
     display: "flex",
@@ -440,28 +561,127 @@ const styles = {
   },
   actions: {
     display: "flex",
-    gap: "8px",
+    gap: "12px",
+    alignItems: "center",
   },
-  approveButton: {
-    padding: "6px 14px",
-    backgroundColor: "#DCFCE7",
-    color: "#15803D",
-    border: "none",
-    borderRadius: "8px",
+  editLink: {
     fontSize: "13px",
     fontWeight: "600",
-    cursor: "pointer",
+    color: "#0F172A",
+    textDecoration: "none",
   },
-  rejectButton: {
-    padding: "6px 14px",
-    backgroundColor: "#FFF1F2",
-    color: "#BE123C",
+  deleteButton: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#EF4444",
+    background: "none",
     border: "none",
+    cursor: "pointer",
+    padding: 0,
+  },
+  emptyState: {
+    padding: "40px 0",
+  },
+  emptyText: {
+    fontSize: "16px",
+    color: "#64748B",
+    marginBottom: "12px",
+  },
+  emptyLink: {
+    fontSize: "15px",
+    color: "#C29A4B",
+    fontWeight: "600",
+    textDecoration: "none",
+  },
+  profileCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: "12px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+    padding: "28px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+    maxWidth: "700px",
+  },
+  profileGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "16px",
+  },
+  fieldGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  label: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  input: {
+    padding: "10px 14px",
+    fontSize: "14px",
+    border: "1px solid #CBD5E1",
     borderRadius: "8px",
+    outline: "none",
+    color: "#0F172A",
+  },
+  textarea: {
+    padding: "10px 14px",
+    fontSize: "14px",
+    border: "1px solid #CBD5E1",
+    borderRadius: "8px",
+    outline: "none",
+    color: "#0F172A",
+    fontFamily: "inherit",
+    resize: "vertical",
+  },
+  profileSuccess: {
+    fontSize: "14px",
+    color: "#15803D",
+    margin: 0,
+  },
+  profileError: {
+    fontSize: "14px",
+    color: "#EF4444",
+    margin: 0,
+  },
+  photoRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+  },
+  photoPreview: {
+    width: "56px",
+    height: "56px",
+    borderRadius: "50%",
+    objectFit: "cover",
+    flexShrink: 0,
+  },
+  photoPreviewEmpty: {
+    width: "56px",
+    height: "56px",
+    borderRadius: "50%",
+    flexShrink: 0,
+    backgroundColor: "#E2E8F0",
+    color: "#94A3B8",
+    fontSize: "11px",
+    fontWeight: "600",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+  },
+  photoUploadButton: {
+    padding: "9px 16px",
+    borderRadius: "8px",
+    border: "1px solid #CBD5E1",
+    backgroundColor: "#F8FAFC",
+    color: "#0F172A",
     fontSize: "13px",
     fontWeight: "600",
     cursor: "pointer",
   },
 };
 
-export default AdminDashboard;
+export default AgentDashboard;

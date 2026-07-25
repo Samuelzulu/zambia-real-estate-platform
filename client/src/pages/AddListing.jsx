@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createListing } from "../services/api";
+import { createListing, uploadImages } from "../services/api";
 
 function AddListing() {
   const navigate = useNavigate();
@@ -13,6 +13,9 @@ function AddListing() {
     bathrooms: "",
     property_type: "house",
   });
+  const [images, setImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState(null);
@@ -20,6 +23,42 @@ function AddListing() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    if (images.length + files.length > 6) {
+      setUploadError("You can upload up to 6 photos per listing.");
+      e.target.value = "";
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const res = await uploadImages(files);
+      const newEntries = res.data.urls.map((url) => ({ url, label: "" }));
+      setImages((prev) => [...prev, ...newEntries]);
+    } catch (err) {
+      setUploadError(
+        err.response?.data?.error || "Failed to upload one or more photos",
+      );
+    } finally {
+      setUploading(false);
+      e.target.value = ""; // allows re-selecting the same file later
+    }
+  };
+
+  const removeImage = (url) => {
+    setImages((prev) => prev.filter((img) => img.url !== url));
+  };
+
+  const updateLabel = (url, label) => {
+    setImages((prev) =>
+      prev.map((img) => (img.url === url ? { ...img, label } : img)),
+    );
   };
 
   const validate = () => {
@@ -43,7 +82,7 @@ function AddListing() {
     setErrors({});
     setLoading(true);
     try {
-      await createListing(form);
+      await createListing({ ...form, images });
       navigate("/agent-dashboard");
     } catch (err) {
       setServerError(err.response?.data?.error || "Failed to create listing");
@@ -71,6 +110,71 @@ function AddListing() {
           {serverError && <p style={styles.serverError}>{serverError}</p>}
 
           <form onSubmit={handleSubmit} style={styles.form}>
+            {/* Photos */}
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>
+                Photos {images.length > 0 && `(${images.length}/6)`}
+              </label>
+
+              {images.length > 0 && (
+                <div style={styles.photoGrid}>
+                  {images.map((img) => (
+                    <div key={img.url} style={styles.photoCard}>
+                      <div style={styles.photoThumb}>
+                        <img src={img.url} alt="" style={styles.photoImg} />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(img.url)}
+                          style={styles.photoRemove}
+                          aria-label="Remove photo"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        list="photo-label-suggestions"
+                        value={img.label}
+                        onChange={(e) => updateLabel(img.url, e.target.value)}
+                        placeholder="Label (e.g. Living Room)"
+                        style={styles.photoLabelInput}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <datalist id="photo-label-suggestions">
+                <option value="Front View" />
+                <option value="Living Room" />
+                <option value="Primary Bedroom" />
+                <option value="Secondary Bedroom" />
+                <option value="Kitchen" />
+                <option value="Bathroom" />
+                <option value="Dining Room" />
+                <option value="Exterior" />
+                <option value="Garden / Yard" />
+              </datalist>
+
+              {images.length < 6 && (
+                <label style={styles.uploadBox}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileChange}
+                    disabled={uploading}
+                    style={{ display: "none" }}
+                  />
+                  <span style={styles.uploadText}>
+                    {uploading
+                      ? "Uploading..."
+                      : "+ Add photos (up to 6, 5MB each)"}
+                  </span>
+                </label>
+              )}
+              {uploadError && <p style={styles.error}>{uploadError}</p>}
+            </div>
+
             {/* Title */}
             <div style={styles.fieldGroup}>
               <label style={styles.label}>Property Title</label>
@@ -207,7 +311,7 @@ function AddListing() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || uploading}
               style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
             >
               {loading ? "Saving..." : "Save Listing"}
@@ -333,6 +437,75 @@ const styles = {
     width: "100%",
     marginTop: "8px",
     fontFamily: "inherit",
+  },
+  photoGrid: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "12px",
+    marginBottom: "10px",
+  },
+  photoCard: {
+    width: "110px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  photoThumb: {
+    position: "relative",
+    width: "110px",
+    height: "88px",
+    borderRadius: "8px",
+    overflow: "hidden",
+  },
+  photoImg: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    display: "block",
+  },
+  photoRemove: {
+    position: "absolute",
+    top: "4px",
+    right: "4px",
+    width: "20px",
+    height: "20px",
+    borderRadius: "50%",
+    border: "none",
+    backgroundColor: "rgba(15,23,42,0.75)",
+    color: "#FFFFFF",
+    fontSize: "11px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 0,
+  },
+  photoLabelInput: {
+    fontSize: "11px",
+    padding: "6px 8px",
+    borderRadius: "6px",
+    border: "1px solid #CBD5E1",
+    outline: "none",
+    backgroundColor: "#F8FAFC",
+    color: "#0F172A",
+    width: "100%",
+    boxSizing: "border-box",
+    fontFamily: "inherit",
+  },
+  uploadBox: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "16px",
+    borderRadius: "10px",
+    border: "1px dashed #CBD5E1",
+    backgroundColor: "#F8FAFC",
+    cursor: "pointer",
+  },
+  uploadText: {
+    fontSize: "14px",
+    color: "#64748B",
+    fontWeight: "600",
   },
 };
 

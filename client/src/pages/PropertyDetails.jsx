@@ -1,42 +1,105 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { listings } from "../data/mockListings";
-import { agents } from "../data/mockAgents";
-import { createInquiry } from "../services/api";
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import {
+  getListingById,
+  getAgentById,
+  createInquiry,
+  addFavorite,
+  removeFavorite,
+  getFavorites,
+} from "../services/api";
+import { useRole } from "../context/RoleContext";
+
+function initials(name) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join("");
+}
 
 function PropertyDetails() {
   const { id } = useParams();
-  const property = listings.find((item) => item.id === Number(id));
+  const navigate = useNavigate();
+  const { user, role } = useRole();
+
+  const [property, setProperty] = useState(null);
+  const [agent, setAgent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [activeImage, setActiveImage] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [savePending, setSavePending] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [inquiry, setInquiry] = useState({ name: "", email: "", message: "" });
   const [inquiryErrors, setInquiryErrors] = useState({});
   const [inquirySent, setInquirySent] = useState(false);
 
-  if (!property) {
-    return (
-      <div style={styles.page}>
-        <div style={styles.container}>
-          <h1 style={{ color: "#0F172A" }}>Property not found.</h1>
-          <Link to="/listings" style={styles.backLink}>
-            ← Back to Listings
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const listingRes = await getListingById(id);
+        setProperty(listingRes.data);
 
-  // Mock multiple images using the same image with slight variation labels
-  const images = [
-    { src: property.image, label: "Front View" },
-    { src: property.image, label: "Living Room" },
-    { src: property.image, label: "Exterior" },
-  ];
+        if (listingRes.data.agent_id) {
+          try {
+            const agentRes = await getAgentById(listingRes.data.agent_id);
+            setAgent(agentRes.data.agent);
+          } catch {
+            setAgent(null);
+          }
+        }
 
-  // Pick a mock agent for this property
-  const agent = agents[property.id % agents.length];
+        if (user && role === "customer") {
+          try {
+            const favRes = await getFavorites();
+            setSaved(
+              favRes.data.some(
+                (f) => f.listing_id === Number(listingRes.data.id),
+              ),
+            );
+          } catch {
+            // non-critical
+          }
+        }
+      } catch (err) {
+        setError(
+          err.response?.status === 404
+            ? "Property not found."
+            : "Failed to load property.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id, user, role]);
+
+  const handleSaveToggle = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    setSavePending(true);
+    try {
+      if (saved) {
+        await removeFavorite(property.id);
+        setSaved(false);
+      } else {
+        await addFavorite(property.id);
+        setSaved(true);
+      }
+    } catch (err) {
+      console.error("Favorite toggle error:", err);
+    } finally {
+      setSavePending(false);
+    }
+  };
 
   const validateInquiry = () => {
     const errs = {};
@@ -69,6 +132,32 @@ function PropertyDetails() {
     }
   };
 
+  if (loading) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.container}>
+          <p style={{ color: "#64748B" }}>Loading property...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !property) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.container}>
+          <h1 style={{ color: "#0F172A" }}>{error || "Property not found."}</h1>
+          <Link to="/listings" style={styles.backLink}>
+            ← Back to Listings
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const images =
+    property.images && property.images.length > 0 ? property.images : null;
+
   return (
     <div style={styles.page}>
       <div style={styles.container}>
@@ -82,34 +171,48 @@ function PropertyDetails() {
           {/* Left — Image gallery */}
           <div style={styles.gallerySection}>
             <div style={styles.mainImageWrapper}>
-              <img
-                src={images[activeImage].src}
-                alt={images[activeImage].label}
-                style={styles.mainImage}
-              />
-              <span style={styles.imageLabel}>{images[activeImage].label}</span>
-            </div>
-            <div style={styles.thumbnailRow}>
-              {images.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveImage(i)}
-                  style={{
-                    ...styles.thumbnail,
-                    border:
-                      activeImage === i
-                        ? "2px solid #C29A4B"
-                        : "2px solid transparent",
-                  }}
-                >
+              {images ? (
+                <>
                   <img
-                    src={img.src}
-                    alt={img.label}
-                    style={styles.thumbImage}
+                    src={images[activeImage].url}
+                    alt={images[activeImage].label || property.title}
+                    style={styles.mainImage}
                   />
-                </button>
-              ))}
+                  {images[activeImage].label && (
+                    <span style={styles.imageLabel}>
+                      {images[activeImage].label}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <div style={styles.noImagePlaceholder}>
+                  <span style={styles.noImageText}>No photos yet</span>
+                </div>
+              )}
             </div>
+            {images && images.length > 1 && (
+              <div style={styles.thumbnailRow}>
+                {images.map((img, i) => (
+                  <button
+                    key={img.url}
+                    onClick={() => setActiveImage(i)}
+                    style={{
+                      ...styles.thumbnail,
+                      border:
+                        activeImage === i
+                          ? "2px solid #C29A4B"
+                          : "2px solid transparent",
+                    }}
+                  >
+                    <img
+                      src={img.url}
+                      alt={img.label || ""}
+                      style={styles.thumbImage}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right — Property info */}
@@ -141,7 +244,7 @@ function PropertyDetails() {
             {/* Description */}
             <p style={styles.description}>
               {property.description ||
-                "This property is a great option for buyers looking for comfort, convenience, and a strong location in Zambia. Well maintained and situated in a prime area with easy access to amenities."}
+                "This property is a great option for buyers looking for comfort, convenience, and a strong location in Zambia."}
             </p>
 
             {/* Action buttons */}
@@ -153,12 +256,14 @@ function PropertyDetails() {
                 Contact Agent
               </button>
               <button
-                onClick={() => setSaved((prev) => !prev)}
+                onClick={handleSaveToggle}
+                disabled={savePending}
                 style={{
                   ...styles.saveButton,
                   backgroundColor: saved ? "#FFF1F2" : "#FFFFFF",
                   borderColor: saved ? "#EF4444" : "#CBD5E1",
                   color: saved ? "#EF4444" : "#64748B",
+                  opacity: savePending ? 0.6 : 1,
                 }}
               >
                 {saved ? "♥ Saved" : "♡ Save"}
@@ -166,21 +271,31 @@ function PropertyDetails() {
             </div>
 
             {/* Agent preview card */}
-            <div style={styles.agentCard}>
-              <img
-                src={agent.image}
-                alt={agent.name}
-                style={styles.agentAvatar}
-              />
-              <div style={styles.agentInfo}>
-                <p style={styles.agentLabel}>Listed by</p>
-                <p style={styles.agentName}>{agent.name}</p>
-                <p style={styles.agentAgency}>{agent.agency}</p>
+            {agent && (
+              <div style={styles.agentCard}>
+                {agent.photo_url ? (
+                  <img
+                    src={agent.photo_url}
+                    alt={agent.full_name}
+                    style={styles.agentAvatar}
+                  />
+                ) : (
+                  <div style={styles.agentAvatarFallback}>
+                    {initials(agent.full_name)}
+                  </div>
+                )}
+                <div style={styles.agentInfo}>
+                  <p style={styles.agentLabel}>Listed by</p>
+                  <p style={styles.agentName}>{agent.full_name}</p>
+                  <p style={styles.agentAgency}>
+                    {agent.agency || "Independent Agent"}
+                  </p>
+                </div>
+                <Link to={`/agents/${agent.id}`} style={styles.viewProfileLink}>
+                  View Profile →
+                </Link>
               </div>
-              <Link to={`/agents/${agent.id}`} style={styles.viewProfileLink}>
-                View Profile →
-              </Link>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -283,8 +398,9 @@ function PropertyDetails() {
                 <p style={styles.successIcon}>✓</p>
                 <h2 style={styles.successTitle}>Inquiry Sent!</h2>
                 <p style={styles.successText}>
-                  Your message has been sent to {agent.name}. They will get back
-                  to you at {inquiry.email}.
+                  Your message has been sent
+                  {agent ? ` to ${agent.full_name}` : ""}. They will get back to
+                  you at {inquiry.email}.
                 </p>
                 <button
                   onClick={() => {
@@ -344,6 +460,19 @@ const styles = {
     height: "420px",
     objectFit: "cover",
     display: "block",
+  },
+  noImagePlaceholder: {
+    width: "100%",
+    height: "420px",
+    backgroundColor: "#E2E8F0",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noImageText: {
+    fontSize: "15px",
+    color: "#94A3B8",
+    fontWeight: "600",
   },
   imageLabel: {
     position: "absolute",
@@ -465,6 +594,19 @@ const styles = {
     borderRadius: "50%",
     objectFit: "cover",
     flexShrink: 0,
+  },
+  agentAvatarFallback: {
+    width: "52px",
+    height: "52px",
+    borderRadius: "50%",
+    flexShrink: 0,
+    backgroundColor: "#0F172A",
+    color: "#FFFFFF",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "16px",
+    fontWeight: "700",
   },
   agentInfo: {
     flex: 1,
