@@ -17,6 +17,7 @@ const listingRoutes = require("./routes/listings");
 const inquiryRoutes = require("./routes/inquiries");
 const favoriteRoutes = require("./routes/favorites");
 const reportRoutes = require("./routes/reports");
+const uploadRoutes = require("./routes/uploads");
 const { verifyToken, requireRole } = require("./middleware/authMiddleware");
 
 app.use("/api/auth", authRoutes);
@@ -25,6 +26,7 @@ app.use("/api/agents", agentRoutes);
 app.use("/api/inquiries", inquiryRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 // Test route
 app.get("/", (req, res) => {
@@ -48,6 +50,16 @@ pool.query("SELECT NOW()", (err, res) => {
   } else {
     console.log("Database connected:", res.rows[0].now);
   }
+});
+
+// Error handler — catches multer errors (file too large, wrong type, etc.)
+// and anything else that reaches next(err), returning JSON instead of HTML.
+app.use((err, req, res, next) => {
+  if (err) {
+    console.error("Unhandled error:", err.message);
+    return res.status(400).json({ error: err.message || "Request failed" });
+  }
+  next();
 });
 
 // Port

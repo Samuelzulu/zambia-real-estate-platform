@@ -23,6 +23,9 @@ function ListingCard({ listing }) {
           <div style={styles.meta}>
             <span>{listing.bedrooms} Beds</span>
             <span>{listing.bathrooms} Baths</span>
+            {listing.square_footage && (
+              <span>{listing.square_footage} sqft</span>
+            )}
           </div>
         </div>
       </div>

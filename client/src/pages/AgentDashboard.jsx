@@ -6,6 +6,7 @@ import {
   deleteListing,
   getAgentInquiries,
   updateAgentProfile,
+  uploadImages,
 } from "../services/api";
 
 function AgentDashboard() {
@@ -26,6 +27,8 @@ function AgentDashboard() {
   });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -43,6 +46,23 @@ function AgentDashboard() {
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
     setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoUploading(true);
+    setPhotoError(null);
+    try {
+      const res = await uploadImages([file]);
+      setProfileForm((prev) => ({ ...prev, photo_url: res.data.urls[0] }));
+    } catch (err) {
+      setPhotoError(err.response?.data?.error || "Failed to upload photo");
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = "";
+    }
   };
 
   const handleProfileSubmit = async (e) => {
@@ -322,14 +342,29 @@ function AgentDashboard() {
                 />
               </div>
               <div style={styles.fieldGroup}>
-                <label style={styles.label}>Photo URL</label>
-                <input
-                  name="photo_url"
-                  placeholder="https://..."
-                  value={profileForm.photo_url}
-                  onChange={handleProfileChange}
-                  style={styles.input}
-                />
+                <label style={styles.label}>Photo</label>
+                <div style={styles.photoRow}>
+                  {profileForm.photo_url ? (
+                    <img
+                      src={profileForm.photo_url}
+                      alt="Profile"
+                      style={styles.photoPreview}
+                    />
+                  ) : (
+                    <div style={styles.photoPreviewEmpty}>No photo</div>
+                  )}
+                  <label style={styles.photoUploadButton}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      disabled={photoUploading}
+                      style={{ display: "none" }}
+                    />
+                    {photoUploading ? "Uploading..." : "Change photo"}
+                  </label>
+                </div>
+                {photoError && <p style={styles.profileError}>{photoError}</p>}
               </div>
             </div>
             <div style={styles.fieldGroup}>
@@ -359,7 +394,7 @@ function AgentDashboard() {
             <button
               type="submit"
               style={styles.addButton}
-              disabled={profileSaving}
+              disabled={profileSaving || photoUploading}
             >
               {profileSaving ? "Saving..." : "Save profile"}
             </button>
@@ -610,6 +645,42 @@ const styles = {
     fontSize: "14px",
     color: "#EF4444",
     margin: 0,
+  },
+  photoRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+  },
+  photoPreview: {
+    width: "56px",
+    height: "56px",
+    borderRadius: "50%",
+    objectFit: "cover",
+    flexShrink: 0,
+  },
+  photoPreviewEmpty: {
+    width: "56px",
+    height: "56px",
+    borderRadius: "50%",
+    flexShrink: 0,
+    backgroundColor: "#E2E8F0",
+    color: "#94A3B8",
+    fontSize: "11px",
+    fontWeight: "600",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+  },
+  photoUploadButton: {
+    padding: "9px 16px",
+    borderRadius: "8px",
+    border: "1px solid #CBD5E1",
+    backgroundColor: "#F8FAFC",
+    color: "#0F172A",
+    fontSize: "13px",
+    fontWeight: "600",
+    cursor: "pointer",
   },
 };
 

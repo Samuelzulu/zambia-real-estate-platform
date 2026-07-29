@@ -13,6 +13,8 @@ function EditListing() {
     bedrooms: "",
     bathrooms: "",
     property_type: "house",
+    square_footage: "",
+    year_built: "",
   });
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -35,6 +37,8 @@ function EditListing() {
           bedrooms: l.bedrooms || "",
           bathrooms: l.bathrooms || "",
           property_type: l.property_type || "house",
+          square_footage: l.square_footage || "",
+          year_built: l.year_built || "",
         });
         setImages(l.images || []);
       } catch (err) {
@@ -332,6 +336,32 @@ function EditListing() {
                   <option value="land">Land</option>
                   <option value="commercial">Commercial</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Square footage and year built */}
+            <div style={styles.row}>
+              <div style={{ ...styles.fieldGroup, flex: 1 }}>
+                <label style={styles.label}>Square Footage</label>
+                <input
+                  name="square_footage"
+                  type="number"
+                  value={form.square_footage}
+                  onChange={handleChange}
+                  placeholder="e.g. 1450"
+                  style={styles.input}
+                />
+              </div>
+              <div style={{ ...styles.fieldGroup, flex: 1 }}>
+                <label style={styles.label}>Year Built</label>
+                <input
+                  name="year_built"
+                  type="number"
+                  value={form.year_built}
+                  onChange={handleChange}
+                  placeholder="e.g. 2018"
+                  style={styles.input}
+                />
               </div>
             </div>
 

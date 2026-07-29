@@ -41,14 +41,16 @@ const createListing = async (req, res) => {
     bathrooms,
     property_type,
     images,
+    square_footage,
+    year_built,
   } = req.body;
   const agent_id = req.user.userId;
 
   try {
     const result = await pool.query(
       `INSERT INTO listings 
-        (title, description, price, location, bedrooms, bathrooms, property_type, agent_id, images)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        (title, description, price, location, bedrooms, bathrooms, property_type, agent_id, images, square_footage, year_built)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [
         title,
@@ -60,6 +62,8 @@ const createListing = async (req, res) => {
         property_type,
         agent_id,
         JSON.stringify(images || []),
+        square_footage || null,
+        year_built || null,
       ],
     );
     res.status(201).json(result.rows[0]);
@@ -81,6 +85,8 @@ const updateListing = async (req, res) => {
     bathrooms,
     property_type,
     images,
+    square_footage,
+    year_built,
   } = req.body;
   const agent_id = req.user.userId;
 
@@ -88,8 +94,9 @@ const updateListing = async (req, res) => {
     const result = await pool.query(
       `UPDATE listings SET
         title = $1, description = $2, price = $3, location = $4,
-        bedrooms = $5, bathrooms = $6, property_type = $7, images = $8
-       WHERE id = $9 AND agent_id = $10
+        bedrooms = $5, bathrooms = $6, property_type = $7, images = $8,
+        square_footage = $9, year_built = $10
+       WHERE id = $11 AND agent_id = $12
        RETURNING *`,
       [
         title,
@@ -100,6 +107,8 @@ const updateListing = async (req, res) => {
         bathrooms,
         property_type,
         JSON.stringify(images || []),
+        square_footage || null,
+        year_built || null,
         id,
         agent_id,
       ],

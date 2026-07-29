@@ -239,6 +239,22 @@ function PropertyDetails() {
                 <span style={styles.metaIcon}>📍</span>
                 <span style={styles.metaText}>{property.location}</span>
               </div>
+              {property.square_footage && (
+                <div style={styles.metaItem}>
+                  <span style={styles.metaIcon}>📐</span>
+                  <span style={styles.metaText}>
+                    {property.square_footage} sq ft
+                  </span>
+                </div>
+              )}
+              {property.year_built && (
+                <div style={styles.metaItem}>
+                  <span style={styles.metaIcon}>🏗</span>
+                  <span style={styles.metaText}>
+                    Built {property.year_built}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Description */}
