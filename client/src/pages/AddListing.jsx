@@ -321,7 +321,7 @@ function AddListing() {
                   value={form.square_footage}
                   onChange={handleChange}
                   placeholder="e.g. 1450"
-                  style={styles.input}
+                  style={{ ...styles.input, border: "1px solid #CBD5E1" }}
                 />
               </div>
               <div style={{ ...styles.fieldGroup, flex: 1 }}>
@@ -332,7 +332,7 @@ function AddListing() {
                   value={form.year_built}
                   onChange={handleChange}
                   placeholder="e.g. 2018"
-                  style={styles.input}
+                  style={{ ...styles.input, border: "1px solid #CBD5E1" }}
                 />
               </div>
             </div>
