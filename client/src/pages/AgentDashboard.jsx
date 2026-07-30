@@ -219,7 +219,15 @@ function AgentDashboard() {
                 <tbody>
                   {listings.map((listing) => (
                     <tr key={listing.id}>
-                      <td style={styles.td}>{listing.title}</td>
+                      <td style={styles.td}>
+                        {listing.title}
+                        {listing.status === "rejected" &&
+                          listing.rejection_reason && (
+                            <p style={styles.rejectionNote}>
+                              Reason: {listing.rejection_reason}
+                            </p>
+                          )}
+                      </td>
                       <td style={styles.td}>{listing.location}</td>
                       <td style={styles.td}>{listing.price}</td>
                       <td style={styles.td}>
@@ -592,6 +600,12 @@ const styles = {
     color: "#C29A4B",
     fontWeight: "600",
     textDecoration: "none",
+  },
+  rejectionNote: {
+    fontSize: "12px",
+    color: "#BE123C",
+    margin: "4px 0 0 0",
+    fontWeight: "500",
   },
   profileCard: {
     backgroundColor: "#FFFFFF",

@@ -49,13 +49,32 @@ function AdminDashboard() {
   }, []);
 
   const handleListingStatus = async (id, status) => {
+    let reason;
+    if (status === "rejected") {
+      reason = window.prompt(
+        "Reason for rejecting this listing (the agent will see this):",
+      );
+      if (reason === null) return; // cancelled
+      if (!reason.trim()) {
+        alert("A reason is required to reject a listing.");
+        return;
+      }
+    }
     try {
-      await updateListingStatus(id, status);
+      await updateListingStatus(id, status, reason);
       setListings((prev) =>
-        prev.map((l) => (l.id === id ? { ...l, status } : l)),
+        prev.map((l) =>
+          l.id === id
+            ? {
+                ...l,
+                status,
+                rejection_reason: status === "rejected" ? reason : null,
+              }
+            : l,
+        ),
       );
     } catch (err) {
-      alert("Failed to update listing status");
+      alert(err.response?.data?.error || "Failed to update listing status");
     }
   };
 

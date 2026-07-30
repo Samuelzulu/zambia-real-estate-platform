@@ -11,7 +11,8 @@ function Home() {
     const fetchListings = async () => {
       try {
         const res = await getListings();
-        setFeaturedListings(res.data.slice(0, 3));
+        const approved = res.data.filter((l) => l.status === "approved");
+        setFeaturedListings(approved.slice(0, 3));
       } catch (err) {
         console.error("Failed to load listings:", err);
       } finally {

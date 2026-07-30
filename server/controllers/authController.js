@@ -6,6 +6,10 @@ const jwt = require("jsonwebtoken");
 const register = async (req, res) => {
   const { full_name, email, password, role, ziea_number } = req.body;
 
+  // Never trust role from the client beyond these two options — admin
+  // accounts must be created directly in the database, not via signup.
+  const safeRole = role === "agent" ? "agent" : "customer";
+
   try {
     // Check if email already exists
     const existingUser = await pool.query(
@@ -25,13 +29,7 @@ const register = async (req, res) => {
       `INSERT INTO users (full_name, email, password, role, ziea_number)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id, full_name, email, role, ziea_number, verified, agency, bio, location, phone, photo_url, created_at`,
-      [
-        full_name,
-        email,
-        hashedPassword,
-        role || "customer",
-        ziea_number || null,
-      ],
+      [full_name, email, hashedPassword, safeRole, ziea_number || null],
     );
 
     const newUser = result.rows[0];

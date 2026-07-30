@@ -22,11 +22,13 @@ function Listings() {
     fetchListings();
   }, []);
 
-  const filteredListings = listings.filter(
-    (listing) =>
-      listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      listing.location.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredListings = listings
+    .filter((listing) => listing.status === "approved")
+    .filter(
+      (listing) =>
+        listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        listing.location.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
 
   return (
     <div style={styles.page}>

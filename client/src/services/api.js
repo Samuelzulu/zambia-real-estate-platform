@@ -61,7 +61,7 @@ export const updateReportStatus = (id, status) =>
 export const getAllAgentsAdmin = () => API.get("/agents/admin/all");
 export const updateAgentStatus = (id, account_status) =>
   API.put(`/agents/admin/${id}/status`, { account_status });
-export const updateListingStatus = (id, status) =>
-  API.put(`/listings/admin/${id}/status`, { status });
+export const updateListingStatus = (id, status, reason) =>
+  API.put(`/listings/admin/${id}/status`, { status, reason });
 
 export default API;
