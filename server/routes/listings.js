@@ -14,14 +14,22 @@ router.post(
 router.put(
   "/:id",
   verifyToken,
-  requireRole("agent"),
+  requireRole("agent", "admin"),
   listingsController.updateListing,
 );
 router.delete(
   "/:id",
   verifyToken,
-  requireRole("agent"),
+  requireRole("agent", "admin"),
   listingsController.deleteListing,
+);
+
+// Admin only — approve, reject, or unpublish any listing
+router.put(
+  "/admin/:id/status",
+  verifyToken,
+  requireRole("admin"),
+  listingsController.updateListingStatus,
 );
 
 module.exports = router;

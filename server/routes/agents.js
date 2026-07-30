@@ -28,5 +28,17 @@ router.put(
   requireRole("admin"),
   agentsController.verifyAgent,
 );
+router.get(
+  "/admin/all",
+  verifyToken,
+  requireRole("admin"),
+  agentsController.getAllAgentsAdmin,
+);
+router.put(
+  "/admin/:id/status",
+  verifyToken,
+  requireRole("admin"),
+  agentsController.updateAgentStatus,
+);
 
 module.exports = router;

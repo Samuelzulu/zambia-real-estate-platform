@@ -33,7 +33,7 @@ const createReport = async (req, res) => {
 const getAllReports = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT r.id, r.reason, r.status, r.created_at,
+      `SELECT r.id, r.reason, r.status, r.created_at, r.listing_id,
               u.full_name AS reporter_name,
               l.title AS listing_title,
               a.full_name AS agent_name

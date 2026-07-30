@@ -4,110 +4,63 @@ import { useRole } from "../context/RoleContext";
 import {
   getListings,
   deleteListing,
-  getAgentInquiries,
-  updateAgentProfile,
-  uploadImages,
+  updateListingStatus,
+  getAllAgentsAdmin,
+  updateAgentStatus,
+  getPendingAgents,
+  getAllReports,
 } from "../services/api";
 
-function AgentDashboard() {
-  const { user, updateUser } = useRole();
+function AdminDashboard() {
+  const { user } = useRole();
   const [listings, setListings] = useState([]);
-  const [inquiries, setInquiries] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [openReportsCount, setOpenReportsCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("listings");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [listingFilter, setListingFilter] = useState("all");
 
-  const [profileForm, setProfileForm] = useState({
-    full_name: "",
-    ziea_number: "",
-    agency: "",
-    phone: "",
-    location: "",
-    bio: "",
-    photo_url: "",
-  });
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileMessage, setProfileMessage] = useState(null);
-  const [photoUploading, setPhotoUploading] = useState(false);
-  const [photoError, setPhotoError] = useState(null);
-
-  useEffect(() => {
-    if (!user) return;
-    setProfileForm({
-      full_name: user.full_name || "",
-      ziea_number: user.ziea_number || "",
-      agency: user.agency || "",
-      phone: user.phone || "",
-      location: user.location || "",
-      bio: user.bio || "",
-      photo_url: user.photo_url || "",
-    });
-  }, [user]);
-
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target;
-    setProfileForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setPhotoUploading(true);
-    setPhotoError(null);
+  const fetchAll = async () => {
+    setLoading(true);
     try {
-      const res = await uploadImages([file]);
-      setProfileForm((prev) => ({ ...prev, photo_url: res.data.urls[0] }));
-    } catch (err) {
-      setPhotoError(err.response?.data?.error || "Failed to upload photo");
-    } finally {
-      setPhotoUploading(false);
-      e.target.value = "";
-    }
-  };
-
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    setProfileSaving(true);
-    setProfileMessage(null);
-    try {
-      const res = await updateAgentProfile(profileForm);
-      updateUser(res.data);
-      setProfileMessage({ type: "success", text: "Profile updated." });
-    } catch (err) {
-      setProfileMessage({
-        type: "error",
-        text: err.response?.data?.error || "Failed to update profile.",
-      });
-    } finally {
-      setProfileSaving(false);
-    }
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [listingsRes, inquiriesRes] = await Promise.all([
+      const [listingsRes, agentsRes, pendingRes, reportsRes] =
+        await Promise.all([
           getListings(),
-          getAgentInquiries(),
+          getAllAgentsAdmin(),
+          getPendingAgents(),
+          getAllReports(),
         ]);
-        // Filter listings to only show this agent's listings
-        const myListings = listingsRes.data.filter(
-          (l) => l.agent_id === user?.id,
-        );
-        setListings(myListings);
-        setInquiries(inquiriesRes.data);
-      } catch (err) {
-        console.error("Agent dashboard fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [user]);
+      setListings(listingsRes.data);
+      setAgents(agentsRes.data);
+      setPendingCount(pendingRes.data.length);
+      setOpenReportsCount(
+        reportsRes.data.filter((r) => r.status === "pending").length,
+      );
+    } catch (err) {
+      console.error("Admin dashboard fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this listing?"))
-      return;
+  useEffect(() => {
+    fetchAll();
+  }, []);
+
+  const handleListingStatus = async (id, status) => {
+    try {
+      await updateListingStatus(id, status);
+      setListings((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, status } : l)),
+      );
+    } catch (err) {
+      alert("Failed to update listing status");
+    }
+  };
+
+  const handleDeleteListing = async (id) => {
+    if (!window.confirm("Permanently delete this listing?")) return;
     try {
       await deleteListing(id);
       setListings((prev) => prev.filter((l) => l.id !== id));
@@ -116,94 +69,166 @@ function AgentDashboard() {
     }
   };
 
-  const statusStyle = (status) => {
+  const handleAgentStatus = async (id, account_status) => {
+    const verb = account_status === "suspended" ? "suspend" : "reactivate";
+    if (!window.confirm(`Are you sure you want to ${verb} this agent?`)) return;
+    try {
+      await updateAgentStatus(id, account_status);
+      setAgents((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, account_status } : a)),
+      );
+      const listingsRes = await getListings();
+      setListings(listingsRes.data);
+    } catch (err) {
+      alert(`Failed to ${verb} agent`);
+    }
+  };
+
+  const listingStatusStyle = (status) => {
     if (status === "approved") return styles.statusApproved;
     if (status === "rejected") return styles.statusRejected;
+    if (status === "unpublished") return styles.statusUnpublished;
     return styles.statusPending;
   };
+
+  const filteredListings =
+    listingFilter === "all"
+      ? listings
+      : listings.filter((l) => l.status === listingFilter);
+
+  const totalListings = listings.length;
+  const pendingListings = listings.filter((l) => l.status === "pending").length;
+  const verifiedAgents = agents.filter((a) => a.verified).length;
 
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-        {/* Header */}
         <div style={styles.header}>
           <div>
-            <p style={styles.eyebrow}>Agent Portal</p>
+            <p style={styles.eyebrow}>Admin Portal</p>
             <h1 style={styles.heading}>
-              Welcome, {user?.full_name?.split(" ")[0] || "Agent"}
+              Welcome, {user?.full_name?.split(" ")[0] || "Admin"}
             </h1>
             <p style={styles.subtext}>{user?.email}</p>
           </div>
-          <Link to="/add-listing" style={styles.addButton}>
-            + Add Listing
-          </Link>
         </div>
 
-        {/* Stats */}
         <div style={styles.statsRow}>
           <div style={styles.statCard}>
-            <span style={styles.statNumber}>{listings.length}</span>
+            <span style={styles.statNumber}>{agents.length}</span>
+            <span style={styles.statLabel}>Total Agents</span>
+          </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{verifiedAgents}</span>
+            <span style={styles.statLabel}>Verified Agents</span>
+          </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{pendingCount}</span>
+            <span style={styles.statLabel}>Pending Verification</span>
+          </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{totalListings}</span>
             <span style={styles.statLabel}>Total Listings</span>
           </div>
           <div style={styles.statCard}>
-            <span style={styles.statNumber}>
-              {listings.filter((l) => l.status === "approved").length}
-            </span>
-            <span style={styles.statLabel}>Approved</span>
+            <span style={styles.statNumber}>{pendingListings}</span>
+            <span style={styles.statLabel}>Pending Listings</span>
           </div>
           <div style={styles.statCard}>
-            <span style={styles.statNumber}>
-              {listings.filter((l) => l.status === "pending").length}
-            </span>
-            <span style={styles.statLabel}>Pending Review</span>
-          </div>
-          <div style={styles.statCard}>
-            <span style={styles.statNumber}>{inquiries.length}</span>
-            <span style={styles.statLabel}>Inquiries</span>
+            <span style={styles.statNumber}>{openReportsCount}</span>
+            <span style={styles.statLabel}>Open Reports</span>
           </div>
         </div>
 
-        {/* Tabs */}
         <div style={styles.tabs}>
+          <button
+            onClick={() => setActiveTab("overview")}
+            style={
+              activeTab === "overview" ? styles.tabActive : styles.tabInactive
+            }
+          >
+            Overview
+          </button>
           <button
             onClick={() => setActiveTab("listings")}
             style={
               activeTab === "listings" ? styles.tabActive : styles.tabInactive
             }
           >
-            My Listings
+            Listings
           </button>
           <button
-            onClick={() => setActiveTab("inquiries")}
+            onClick={() => setActiveTab("agents")}
             style={
-              activeTab === "inquiries" ? styles.tabActive : styles.tabInactive
+              activeTab === "agents" ? styles.tabActive : styles.tabInactive
             }
           >
-            Inquiries
-          </button>
-          <button
-            onClick={() => setActiveTab("profile")}
-            style={
-              activeTab === "profile" ? styles.tabActive : styles.tabInactive
-            }
-          >
-            Profile
+            Agents
           </button>
         </div>
 
-        {/* Listings Tab */}
+        {activeTab === "overview" && (
+          <div style={styles.overviewGrid}>
+            <Link to="/verification-review" style={styles.overviewCard}>
+              <p style={styles.overviewCardTitle}>Verification Queue</p>
+              <p style={styles.overviewCardText}>
+                {pendingCount} agent{pendingCount === 1 ? "" : "s"} waiting on
+                ZIEA verification
+              </p>
+              <span style={styles.overviewCardLink}>Review agents →</span>
+            </Link>
+            <Link to="/reports" style={styles.overviewCard}>
+              <p style={styles.overviewCardTitle}>Reports Queue</p>
+              <p style={styles.overviewCardText}>
+                {openReportsCount} open report
+                {openReportsCount === 1 ? "" : "s"} awaiting review
+              </p>
+              <span style={styles.overviewCardLink}>Review reports →</span>
+            </Link>
+            <div style={styles.overviewCard}>
+              <p style={styles.overviewCardTitle}>Pending Listings</p>
+              <p style={styles.overviewCardText}>
+                {pendingListings} listing{pendingListings === 1 ? "" : "s"}{" "}
+                waiting on approval (usually from unverified agents)
+              </p>
+              <button
+                onClick={() => {
+                  setListingFilter("pending");
+                  setActiveTab("listings");
+                }}
+                style={styles.overviewCardButton}
+              >
+                Review listings →
+              </button>
+            </div>
+          </div>
+        )}
+
         {activeTab === "listings" && (
           <div>
+            <div style={styles.filterRow}>
+              {["all", "pending", "approved", "rejected", "unpublished"].map(
+                (status) => (
+                  <button
+                    key={status}
+                    onClick={() => setListingFilter(status)}
+                    style={
+                      listingFilter === status
+                        ? styles.filterActive
+                        : styles.filterInactive
+                    }
+                  >
+                    {status[0].toUpperCase() + status.slice(1)}
+                  </button>
+                ),
+              )}
+            </div>
+
             {loading ? (
               <p style={{ color: "#64748B" }}>Loading listings...</p>
-            ) : listings.length === 0 ? (
+            ) : filteredListings.length === 0 ? (
               <div style={styles.emptyState}>
-                <p style={styles.emptyText}>
-                  You haven't added any listings yet.
-                </p>
-                <Link to="/add-listing" style={styles.emptyLink}>
-                  Add your first listing →
-                </Link>
+                <p style={styles.emptyText}>No listings match this filter.</p>
               </div>
             ) : (
               <table style={styles.table}>
@@ -217,18 +242,56 @@ function AgentDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {listings.map((listing) => (
+                  {filteredListings.map((listing) => (
                     <tr key={listing.id}>
                       <td style={styles.td}>{listing.title}</td>
                       <td style={styles.td}>{listing.location}</td>
                       <td style={styles.td}>{listing.price}</td>
                       <td style={styles.td}>
-                        <span style={statusStyle(listing.status)}>
+                        <span style={listingStatusStyle(listing.status)}>
                           {listing.status}
                         </span>
                       </td>
                       <td style={styles.td}>
                         <div style={styles.actions}>
+                          <Link
+                            to={`/listings/${listing.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={styles.editLink}
+                          >
+                            View
+                          </Link>
+                          {listing.status !== "approved" && (
+                            <button
+                              onClick={() =>
+                                handleListingStatus(listing.id, "approved")
+                              }
+                              style={styles.approveLink}
+                            >
+                              Approve
+                            </button>
+                          )}
+                          {listing.status === "approved" && (
+                            <button
+                              onClick={() =>
+                                handleListingStatus(listing.id, "unpublished")
+                              }
+                              style={styles.unpublishLink}
+                            >
+                              Unpublish
+                            </button>
+                          )}
+                          {listing.status !== "rejected" && (
+                            <button
+                              onClick={() =>
+                                handleListingStatus(listing.id, "rejected")
+                              }
+                              style={styles.rejectLink}
+                            >
+                              Reject
+                            </button>
+                          )}
                           <Link
                             to={`/edit-listing/${listing.id}`}
                             style={styles.editLink}
@@ -236,7 +299,7 @@ function AgentDashboard() {
                             Edit
                           </Link>
                           <button
-                            onClick={() => handleDelete(listing.id)}
+                            onClick={() => handleDeleteListing(listing.id)}
                             style={styles.deleteButton}
                           >
                             Delete
@@ -251,35 +314,78 @@ function AgentDashboard() {
           </div>
         )}
 
-        {/* Inquiries Tab */}
-        {activeTab === "inquiries" && (
+        {activeTab === "agents" && (
           <div>
             {loading ? (
-              <p style={{ color: "#64748B" }}>Loading inquiries...</p>
-            ) : inquiries.length === 0 ? (
+              <p style={{ color: "#64748B" }}>Loading agents...</p>
+            ) : agents.length === 0 ? (
               <div style={styles.emptyState}>
-                <p style={styles.emptyText}>No inquiries yet.</p>
+                <p style={styles.emptyText}>No agents yet.</p>
               </div>
             ) : (
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <th style={styles.th}>Property</th>
-                    <th style={styles.th}>Customer</th>
+                    <th style={styles.th}>Name</th>
                     <th style={styles.th}>Email</th>
-                    <th style={styles.th}>Message</th>
-                    <th style={styles.th}>Date</th>
+                    <th style={styles.th}>ZIEA #</th>
+                    <th style={styles.th}>Verified</th>
+                    <th style={styles.th}>Account</th>
+                    <th style={styles.th}>Listings</th>
+                    <th style={styles.th}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {inquiries.map((inquiry) => (
-                    <tr key={inquiry.id}>
-                      <td style={styles.td}>{inquiry.listing_title}</td>
-                      <td style={styles.td}>{inquiry.customer_name}</td>
-                      <td style={styles.td}>{inquiry.customer_email}</td>
-                      <td style={styles.td}>{inquiry.message}</td>
+                  {agents.map((agent) => (
+                    <tr key={agent.id}>
+                      <td style={styles.td}>{agent.full_name}</td>
+                      <td style={styles.td}>{agent.email}</td>
+                      <td style={styles.td}>{agent.ziea_number || "—"}</td>
                       <td style={styles.td}>
-                        {new Date(inquiry.created_at).toLocaleDateString()}
+                        <span
+                          style={
+                            agent.verified
+                              ? styles.statusApproved
+                              : styles.statusPending
+                          }
+                        >
+                          {agent.verified ? "verified" : "unverified"}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span
+                          style={
+                            agent.account_status === "suspended"
+                              ? styles.statusRejected
+                              : styles.statusApproved
+                          }
+                        >
+                          {agent.account_status || "active"}
+                        </span>
+                      </td>
+                      <td style={styles.td}>{agent.active_listings}</td>
+                      <td style={styles.td}>
+                        <div style={styles.actions}>
+                          {agent.account_status === "suspended" ? (
+                            <button
+                              onClick={() =>
+                                handleAgentStatus(agent.id, "active")
+                              }
+                              style={styles.approveLink}
+                            >
+                              Reactivate
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() =>
+                                handleAgentStatus(agent.id, "suspended")
+                              }
+                              style={styles.rejectLink}
+                            >
+                              Suspend
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -287,118 +393,6 @@ function AgentDashboard() {
               </table>
             )}
           </div>
-        )}
-
-        {/* Profile Tab */}
-        {activeTab === "profile" && (
-          <form style={styles.profileCard} onSubmit={handleProfileSubmit}>
-            <div style={styles.profileGrid}>
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Full name</label>
-                <input
-                  name="full_name"
-                  value={profileForm.full_name}
-                  onChange={handleProfileChange}
-                  style={styles.input}
-                />
-              </div>
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>ZIEA registration number</label>
-                <input
-                  name="ziea_number"
-                  value={profileForm.ziea_number}
-                  onChange={handleProfileChange}
-                  style={styles.input}
-                />
-              </div>
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Agency</label>
-                <input
-                  name="agency"
-                  placeholder="e.g. Lusaka Prime Properties"
-                  value={profileForm.agency}
-                  onChange={handleProfileChange}
-                  style={styles.input}
-                />
-              </div>
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Phone</label>
-                <input
-                  name="phone"
-                  placeholder="e.g. +260 97 000 0000"
-                  value={profileForm.phone}
-                  onChange={handleProfileChange}
-                  style={styles.input}
-                />
-              </div>
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Primary area</label>
-                <input
-                  name="location"
-                  placeholder="e.g. Lusaka"
-                  value={profileForm.location}
-                  onChange={handleProfileChange}
-                  style={styles.input}
-                />
-              </div>
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Photo</label>
-                <div style={styles.photoRow}>
-                  {profileForm.photo_url ? (
-                    <img
-                      src={profileForm.photo_url}
-                      alt="Profile"
-                      style={styles.photoPreview}
-                    />
-                  ) : (
-                    <div style={styles.photoPreviewEmpty}>No photo</div>
-                  )}
-                  <label style={styles.photoUploadButton}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      disabled={photoUploading}
-                      style={{ display: "none" }}
-                    />
-                    {photoUploading ? "Uploading..." : "Change photo"}
-                  </label>
-                </div>
-                {photoError && <p style={styles.profileError}>{photoError}</p>}
-              </div>
-            </div>
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Bio</label>
-              <textarea
-                name="bio"
-                rows={4}
-                placeholder="A short introduction customers will see on your profile"
-                value={profileForm.bio}
-                onChange={handleProfileChange}
-                style={styles.textarea}
-              />
-            </div>
-
-            {profileMessage && (
-              <p
-                style={
-                  profileMessage.type === "success"
-                    ? styles.profileSuccess
-                    : styles.profileError
-                }
-              >
-                {profileMessage.text}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              style={styles.addButton}
-              disabled={profileSaving || photoUploading}
-            >
-              {profileSaving ? "Saving..." : "Save profile"}
-            </button>
-          </form>
         )}
       </div>
     </div>
@@ -412,7 +406,7 @@ const styles = {
     padding: "50px 20px 80px",
   },
   container: {
-    maxWidth: "1100px",
+    maxWidth: "1200px",
     margin: "0 auto",
   },
   header: {
@@ -442,16 +436,6 @@ const styles = {
     color: "#64748B",
     margin: 0,
   },
-  addButton: {
-    display: "inline-block",
-    padding: "12px 24px",
-    backgroundColor: "#C29A4B",
-    color: "#FFFFFF",
-    borderRadius: "10px",
-    fontSize: "14px",
-    fontWeight: "700",
-    textDecoration: "none",
-  },
   statsRow: {
     display: "flex",
     gap: "16px",
@@ -470,12 +454,12 @@ const styles = {
     gap: "4px",
   },
   statNumber: {
-    fontSize: "28px",
+    fontSize: "26px",
     fontWeight: "800",
     color: "#0F172A",
   },
   statLabel: {
-    fontSize: "13px",
+    fontSize: "12px",
     color: "#64748B",
     fontWeight: "500",
   },
@@ -505,6 +489,71 @@ const styles = {
     marginBottom: "-2px",
     fontSize: "14px",
     fontWeight: "500",
+    cursor: "pointer",
+  },
+  overviewGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gap: "20px",
+  },
+  overviewCard: {
+    display: "block",
+    backgroundColor: "#FFFFFF",
+    borderRadius: "12px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+    padding: "24px",
+    textDecoration: "none",
+  },
+  overviewCardTitle: {
+    fontSize: "16px",
+    fontWeight: "700",
+    color: "#0F172A",
+    margin: "0 0 8px 0",
+  },
+  overviewCardText: {
+    fontSize: "14px",
+    color: "#64748B",
+    margin: "0 0 16px 0",
+    lineHeight: "1.5",
+  },
+  overviewCardLink: {
+    fontSize: "13px",
+    fontWeight: "700",
+    color: "#C29A4B",
+  },
+  overviewCardButton: {
+    fontSize: "13px",
+    fontWeight: "700",
+    color: "#C29A4B",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
+  },
+  filterRow: {
+    display: "flex",
+    gap: "8px",
+    marginBottom: "20px",
+    flexWrap: "wrap",
+  },
+  filterActive: {
+    padding: "7px 16px",
+    borderRadius: "20px",
+    border: "1px solid #0F172A",
+    backgroundColor: "#0F172A",
+    color: "#FFFFFF",
+    fontSize: "13px",
+    fontWeight: "600",
+    cursor: "pointer",
+  },
+  filterInactive: {
+    padding: "7px 16px",
+    borderRadius: "20px",
+    border: "1px solid #CBD5E1",
+    backgroundColor: "#FFFFFF",
+    color: "#64748B",
+    fontSize: "13px",
+    fontWeight: "600",
     cursor: "pointer",
   },
   table: {
@@ -559,16 +608,53 @@ const styles = {
     fontSize: "12px",
     fontWeight: "700",
   },
+  statusUnpublished: {
+    display: "inline-block",
+    padding: "3px 10px",
+    backgroundColor: "#F1F5F9",
+    color: "#475569",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "700",
+  },
   actions: {
     display: "flex",
     gap: "12px",
     alignItems: "center",
+    flexWrap: "wrap",
   },
   editLink: {
     fontSize: "13px",
     fontWeight: "600",
     color: "#0F172A",
     textDecoration: "none",
+  },
+  approveLink: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#15803D",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
+  },
+  rejectLink: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#EF4444",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
+  },
+  unpublishLink: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#64748B",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
   },
   deleteButton: {
     fontSize: "13px",
@@ -585,103 +671,7 @@ const styles = {
   emptyText: {
     fontSize: "16px",
     color: "#64748B",
-    marginBottom: "12px",
-  },
-  emptyLink: {
-    fontSize: "15px",
-    color: "#C29A4B",
-    fontWeight: "600",
-    textDecoration: "none",
-  },
-  profileCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: "12px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-    padding: "28px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-    maxWidth: "700px",
-  },
-  profileGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "16px",
-  },
-  fieldGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  label: {
-    fontSize: "13px",
-    fontWeight: "600",
-    color: "#64748B",
-  },
-  input: {
-    padding: "10px 14px",
-    fontSize: "14px",
-    border: "1px solid #CBD5E1",
-    borderRadius: "8px",
-    outline: "none",
-    color: "#0F172A",
-  },
-  textarea: {
-    padding: "10px 14px",
-    fontSize: "14px",
-    border: "1px solid #CBD5E1",
-    borderRadius: "8px",
-    outline: "none",
-    color: "#0F172A",
-    fontFamily: "inherit",
-    resize: "vertical",
-  },
-  profileSuccess: {
-    fontSize: "14px",
-    color: "#15803D",
-    margin: 0,
-  },
-  profileError: {
-    fontSize: "14px",
-    color: "#EF4444",
-    margin: 0,
-  },
-  photoRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "14px",
-  },
-  photoPreview: {
-    width: "56px",
-    height: "56px",
-    borderRadius: "50%",
-    objectFit: "cover",
-    flexShrink: 0,
-  },
-  photoPreviewEmpty: {
-    width: "56px",
-    height: "56px",
-    borderRadius: "50%",
-    flexShrink: 0,
-    backgroundColor: "#E2E8F0",
-    color: "#94A3B8",
-    fontSize: "11px",
-    fontWeight: "600",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    textAlign: "center",
-  },
-  photoUploadButton: {
-    padding: "9px 16px",
-    borderRadius: "8px",
-    border: "1px solid #CBD5E1",
-    backgroundColor: "#F8FAFC",
-    color: "#0F172A",
-    fontSize: "13px",
-    fontWeight: "600",
-    cursor: "pointer",
   },
 };
 
-export default AgentDashboard;
+export default AdminDashboard;

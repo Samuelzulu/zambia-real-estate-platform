@@ -58,5 +58,10 @@ export const verifyAgent = (id, verified) =>
 export const getAllReports = () => API.get("/reports");
 export const updateReportStatus = (id, status) =>
   API.put(`/reports/${id}`, { status });
+export const getAllAgentsAdmin = () => API.get("/agents/admin/all");
+export const updateAgentStatus = (id, account_status) =>
+  API.put(`/agents/admin/${id}/status`, { account_status });
+export const updateListingStatus = (id, status) =>
+  API.put(`/listings/admin/${id}/status`, { status });
 
 export default API;

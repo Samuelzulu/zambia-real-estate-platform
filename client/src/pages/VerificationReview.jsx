@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { getPendingAgents, verifyAgent } from "../services/api";
 
 function VerificationReview() {
@@ -31,6 +32,10 @@ function VerificationReview() {
   return (
     <div style={styles.page}>
       <div style={styles.container}>
+        <Link to="/admin-dashboard" style={styles.backLink}>
+          ← Back to Dashboard
+        </Link>
+
         <div style={styles.header}>
           <p style={styles.eyebrow}>Admin Portal</p>
           <h1 style={styles.heading}>Agent Verification Review</h1>
@@ -87,6 +92,14 @@ function VerificationReview() {
 }
 
 const styles = {
+  backLink: {
+    display: "inline-block",
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#64748B",
+    textDecoration: "none",
+    marginBottom: "24px",
+  },
   page: {
     backgroundColor: "#F8FAFC",
     minHeight: "100vh",

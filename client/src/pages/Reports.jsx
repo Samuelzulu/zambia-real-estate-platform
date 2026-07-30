@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { getAllReports, updateReportStatus } from "../services/api";
 
 function Reports() {
@@ -52,6 +53,10 @@ function Reports() {
   return (
     <div style={styles.page}>
       <div style={styles.container}>
+        <Link to="/admin-dashboard" style={styles.backLink}>
+          ← Back to Dashboard
+        </Link>
+
         <div style={styles.header}>
           <p style={styles.eyebrow}>Admin Portal</p>
           <h1 style={styles.heading}>Reports & Complaints</h1>
@@ -115,7 +120,20 @@ function Reports() {
               {filtered.map((report) => (
                 <tr key={report.id}>
                   <td style={styles.td}>{report.reporter_name}</td>
-                  <td style={styles.td}>{report.listing_title || "—"}</td>
+                  <td style={styles.td}>
+                    {report.listing_id ? (
+                      <Link
+                        to={`/listings/${report.listing_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={styles.listingLink}
+                      >
+                        {report.listing_title || "View listing"}
+                      </Link>
+                    ) : (
+                      report.listing_title || "—"
+                    )}
+                  </td>
                   <td style={styles.td}>{report.agent_name || "—"}</td>
                   <td style={styles.td}>{report.reason}</td>
                   <td style={styles.td}>
@@ -172,6 +190,20 @@ function Reports() {
 }
 
 const styles = {
+  backLink: {
+    display: "inline-block",
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#64748B",
+    textDecoration: "none",
+    marginBottom: "24px",
+  },
+  listingLink: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#C29A4B",
+    textDecoration: "none",
+  },
   page: {
     backgroundColor: "#F8FAFC",
     minHeight: "100vh",
