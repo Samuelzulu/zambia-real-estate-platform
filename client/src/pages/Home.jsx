@@ -298,9 +298,10 @@ const styles = {
     fontFamily: "Inter, sans-serif",
   },
   grid: {
-    display: "flex",
-    flexWrap: "wrap",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
     gap: "24px",
+    alignItems: "stretch",
   },
   whySection: {
     backgroundColor: "#0F172A",

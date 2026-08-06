@@ -34,16 +34,28 @@ function ListingCard({ listing }) {
 }
 
 const styles = {
-  link: { textDecoration: "none", color: "inherit" },
+  link: {
+    textDecoration: "none",
+    color: "inherit",
+    display: "block",
+    height: "100%",
+  },
   card: {
-    width: "320px",
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
     backgroundColor: "#FFFFFF",
     borderRadius: "12px",
     overflow: "hidden",
     boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
     cursor: "pointer",
   },
-  imageWrapper: { width: "100%", height: "200px", overflow: "hidden" },
+  imageWrapper: {
+    width: "100%",
+    height: "200px",
+    flexShrink: 0,
+    overflow: "hidden",
+  },
   image: {
     width: "100%",
     height: "100%",
@@ -63,7 +75,12 @@ const styles = {
     color: "#94A3B8",
     fontWeight: "600",
   },
-  content: { padding: "20px" },
+  content: {
+    padding: "20px",
+    display: "flex",
+    flexDirection: "column",
+    flex: 1,
+  },
   price: {
     fontSize: "22px",
     fontWeight: "700",
@@ -78,6 +95,8 @@ const styles = {
     fontSize: "14px",
     fontWeight: "600",
     color: "#334155",
+    marginTop: "auto",
+    paddingTop: "8px",
   },
 };
 

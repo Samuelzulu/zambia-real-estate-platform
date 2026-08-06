@@ -1,5 +1,14 @@
 const pool = require("../config/db");
 
+// Square footage / year built are INTEGER columns, but the number input
+// on the frontend doesn't stop someone typing "12916.69". parseInt
+// truncates cleanly instead of letting Postgres reject the whole request.
+const toIntOrNull = (value) => {
+  if (value === "" || value === null || value === undefined) return null;
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 // GET all listings
 const getAllListings = async (req, res) => {
   try {
@@ -74,8 +83,8 @@ const createListing = async (req, res) => {
         property_type,
         agent_id,
         JSON.stringify(images || []),
-        square_footage || null,
-        year_built || null,
+        toIntOrNull(square_footage),
+        toIntOrNull(year_built),
         status,
       ],
     );
@@ -114,8 +123,8 @@ const updateListing = async (req, res) => {
       bathrooms,
       property_type,
       JSON.stringify(images || []),
-      square_footage || null,
-      year_built || null,
+      toIntOrNull(square_footage),
+      toIntOrNull(year_built),
       id,
     ];
     // When an agent edits their own rejected/unpublished listing, treat it

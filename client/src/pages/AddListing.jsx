@@ -318,6 +318,8 @@ function AddListing() {
                 <input
                   name="square_footage"
                   type="number"
+                  step="1"
+                  min="0"
                   value={form.square_footage}
                   onChange={handleChange}
                   placeholder="e.g. 1450"

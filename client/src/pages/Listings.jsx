@@ -108,9 +108,10 @@ const styles = {
     backgroundColor: "white",
   },
   grid: {
-    display: "flex",
-    flexWrap: "wrap",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
     gap: "24px",
+    alignItems: "stretch",
   },
   noResults: {
     fontSize: "18px",

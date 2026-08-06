@@ -101,6 +101,14 @@ function PropertyDetails() {
     }
   };
 
+  const handleContactClick = () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    setModalOpen(true);
+  };
+
   const validateInquiry = () => {
     const errs = {};
     if (!inquiry.name.trim()) errs.name = "Name is required";
@@ -265,10 +273,7 @@ function PropertyDetails() {
 
             {/* Action buttons */}
             <div style={styles.buttonRow}>
-              <button
-                onClick={() => setModalOpen(true)}
-                style={styles.primaryButton}
-              >
+              <button onClick={handleContactClick} style={styles.primaryButton}>
                 Contact Agent
               </button>
               <button

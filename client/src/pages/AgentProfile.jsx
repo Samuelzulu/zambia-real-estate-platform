@@ -1,8 +1,9 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getAgentById } from "../services/api";
 import VerifiedBadge from "../components/VerifiedBadge";
 import ListingCard from "../components/ListingCard";
+import { useRole } from "../context/RoleContext";
 
 function initials(name) {
   if (!name) return "?";
@@ -16,6 +17,8 @@ function initials(name) {
 
 function AgentProfile() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useRole();
   const [agent, setAgent] = useState(null);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -104,23 +107,40 @@ function AgentProfile() {
             {agent.bio && <p style={styles.bio}>{agent.bio}</p>}
             <p style={styles.memberSince}>Member since {memberSince}</p>
 
-            {/* Contact details */}
+            {/* Contact details — hidden from guests to keep contact on-platform */}
             <div style={styles.contactRow}>
-              {agent.phone && (
-                <a href={`tel:${agent.phone}`} style={styles.contactItem}>
-                  📞 {agent.phone}
-                </a>
+              {user ? (
+                <>
+                  {agent.phone && (
+                    <a href={`tel:${agent.phone}`} style={styles.contactItem}>
+                      📞 {agent.phone}
+                    </a>
+                  )}
+                  <a href={`mailto:${agent.email}`} style={styles.contactItem}>
+                    ✉️ {agent.email}
+                  </a>
+                </>
+              ) : (
+                <span style={styles.contactHidden}>
+                  Sign in to view contact details
+                </span>
               )}
-              <a href={`mailto:${agent.email}`} style={styles.contactItem}>
-                ✉️ {agent.email}
-              </a>
             </div>
 
             {/* Action buttons */}
             <div style={styles.buttonRow}>
-              <a href={`mailto:${agent.email}`} style={styles.primaryButton}>
-                Contact Agent
-              </a>
+              {user ? (
+                <a href={`mailto:${agent.email}`} style={styles.primaryButton}>
+                  Contact Agent
+                </a>
+              ) : (
+                <button
+                  onClick={() => navigate("/login")}
+                  style={styles.primaryButton}
+                >
+                  Contact Agent
+                </button>
+              )}
               <button style={styles.reportButton}>Report Agent</button>
             </div>
           </div>
@@ -269,6 +289,11 @@ const styles = {
     textDecoration: "none",
     fontWeight: "500",
   },
+  contactHidden: {
+    fontSize: "14px",
+    color: "#94A3B8",
+    fontStyle: "italic",
+  },
   buttonRow: {
     display: "flex",
     gap: "12px",
@@ -284,6 +309,8 @@ const styles = {
     fontWeight: "600",
     textDecoration: "none",
     cursor: "pointer",
+    border: "none",
+    fontFamily: "inherit",
   },
   reportButton: {
     padding: "12px 24px",

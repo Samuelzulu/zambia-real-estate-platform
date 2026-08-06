@@ -5,6 +5,7 @@ import { Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import Home from "./pages/Home";
 import Listings from "./pages/Listings";
@@ -45,15 +46,64 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        <Route path="/customer-dashboard" element={<CustomerDashboard />} />
-        <Route path="/agent-dashboard" element={<AgentDashboard />} />
+        <Route
+          path="/customer-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <CustomerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/agent-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["agent"]}>
+              <AgentDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/add-listing" element={<AddListing />} />
-        <Route path="/edit-listing/:id" element={<EditListing />} />
+        <Route
+          path="/add-listing"
+          element={
+            <ProtectedRoute allowedRoles={["agent"]}>
+              <AddListing />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/edit-listing/:id"
+          element={
+            <ProtectedRoute allowedRoles={["agent", "admin"]}>
+              <EditListing />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="/verification-review" element={<VerificationReview />} />
-        <Route path="/reports" element={<Reports />} />
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/verification-review"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <VerificationReview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
 
       <Footer />
