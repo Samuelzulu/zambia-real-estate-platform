@@ -7,6 +7,7 @@ import {
   getAgentInquiries,
   updateAgentProfile,
   uploadImages,
+  markListingSold,
 } from "../services/api";
 
 function AgentDashboard() {
@@ -116,11 +117,51 @@ function AgentDashboard() {
     }
   };
 
+  const handleMarkSold = async (id, sold) => {
+    const verb = sold ? "mark this listing as sold" : "relist this property";
+    if (!window.confirm(`Are you sure you want to ${verb}?`)) return;
+    try {
+      const res = await markListingSold(id, sold);
+      setListings((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, status: res.data.status } : l)),
+      );
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to update listing");
+    }
+  };
+
+  // price is free-text (e.g. "K1,850,000" or "780,000") — strip
+  // everything but digits to get a summable number.
+  const parsePrice = (price) => {
+    const digits = (price || "").replace(/[^0-9.]/g, "");
+    const n = parseFloat(digits);
+    return Number.isNaN(n) ? 0 : n;
+  };
+
   const statusStyle = (status) => {
     if (status === "approved") return styles.statusApproved;
     if (status === "rejected") return styles.statusRejected;
+    if (status === "sold") return styles.statusSold;
     return styles.statusPending;
   };
+
+  const approvedListings = listings.filter((l) => l.status === "approved");
+  const soldListings = listings.filter((l) => l.status === "sold");
+  const activeListingsValue = approvedListings.reduce(
+    (sum, l) => sum + parsePrice(l.price),
+    0,
+  );
+  const avgDaysListed = approvedListings.length
+    ? Math.round(
+        approvedListings.reduce((sum, l) => {
+          const days =
+            (Date.now() - new Date(l.created_at).getTime()) /
+            (1000 * 60 * 60 * 24);
+          return sum + days;
+        }, 0) / approvedListings.length,
+      )
+    : 0;
+  const totalViews = listings.reduce((sum, l) => sum + (l.views_count || 0), 0);
 
   return (
     <div style={styles.page}>
@@ -160,6 +201,24 @@ function AgentDashboard() {
           <div style={styles.statCard}>
             <span style={styles.statNumber}>{inquiries.length}</span>
             <span style={styles.statLabel}>Inquiries</span>
+          </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{soldListings.length}</span>
+            <span style={styles.statLabel}>Properties Sold</span>
+          </div>
+          <div style={{ ...styles.statCard, gridColumn: "span 2" }}>
+            <span style={styles.statNumber}>
+              K{activeListingsValue.toLocaleString()}
+            </span>
+            <span style={styles.statLabel}>Active Listings Value</span>
+          </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{avgDaysListed}</span>
+            <span style={styles.statLabel}>Avg. Days Listed</span>
+          </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{totalViews}</span>
+            <span style={styles.statLabel}>Total Views</span>
           </div>
         </div>
 
@@ -238,11 +297,35 @@ function AgentDashboard() {
                       <td style={styles.td}>
                         <div style={styles.actions}>
                           <Link
+                            to={`/listings/${listing.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={styles.editLink}
+                          >
+                            View
+                          </Link>
+                          <Link
                             to={`/edit-listing/${listing.id}`}
                             style={styles.editLink}
                           >
                             Edit
                           </Link>
+                          {listing.status === "approved" && (
+                            <button
+                              onClick={() => handleMarkSold(listing.id, true)}
+                              style={styles.soldButton}
+                            >
+                              Mark Sold
+                            </button>
+                          )}
+                          {listing.status === "sold" && (
+                            <button
+                              onClick={() => handleMarkSold(listing.id, false)}
+                              style={styles.editLink}
+                            >
+                              Relist
+                            </button>
+                          )}
                           <button
                             onClick={() => handleDelete(listing.id)}
                             style={styles.deleteButton}
@@ -461,14 +544,13 @@ const styles = {
     textDecoration: "none",
   },
   statsRow: {
-    display: "flex",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
     gap: "16px",
     marginBottom: "32px",
-    flexWrap: "wrap",
+    alignItems: "stretch",
   },
   statCard: {
-    flex: 1,
-    minWidth: "140px",
     backgroundColor: "#FFFFFF",
     borderRadius: "12px",
     boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
@@ -476,11 +558,14 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "4px",
+    minWidth: 0,
   },
   statNumber: {
-    fontSize: "28px",
+    fontSize: "22px",
     fontWeight: "800",
     color: "#0F172A",
+    wordBreak: "break-word",
+    lineHeight: "1.2",
   },
   statLabel: {
     fontSize: "13px",
@@ -566,6 +651,24 @@ const styles = {
     borderRadius: "20px",
     fontSize: "12px",
     fontWeight: "700",
+  },
+  statusSold: {
+    display: "inline-block",
+    padding: "3px 10px",
+    backgroundColor: "#E0E7FF",
+    color: "#3730A3",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "700",
+  },
+  soldButton: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#3730A3",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
   },
   actions: {
     display: "flex",

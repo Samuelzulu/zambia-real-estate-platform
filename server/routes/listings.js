@@ -32,4 +32,12 @@ router.put(
   listingsController.updateListingStatus,
 );
 
+// Agent (own listing) or admin — toggle approved <-> sold
+router.put(
+  "/:id/sold",
+  verifyToken,
+  requireRole("agent", "admin"),
+  listingsController.markListingSold,
+);
+
 module.exports = router;

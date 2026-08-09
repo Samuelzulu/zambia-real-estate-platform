@@ -363,9 +363,10 @@ const styles = {
     marginBottom: "20px",
   },
   listingsGrid: {
-    display: "flex",
-    flexWrap: "wrap",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
     gap: "24px",
+    alignItems: "stretch",
   },
   noListings: {
     fontSize: "16px",

@@ -36,7 +36,7 @@ const getAgentById = async (req, res) => {
     }
 
     const listingsResult = await pool.query(
-      `SELECT * FROM listings WHERE agent_id = $1 AND status = 'approved'
+      `SELECT * FROM listings WHERE agent_id = $1 AND status IN ('approved', 'sold')
        ORDER BY created_at DESC`,
       [id],
     );

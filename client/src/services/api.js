@@ -63,5 +63,7 @@ export const updateAgentStatus = (id, account_status) =>
   API.put(`/agents/admin/${id}/status`, { account_status });
 export const updateListingStatus = (id, status, reason) =>
   API.put(`/listings/admin/${id}/status`, { status, reason });
+export const markListingSold = (id, sold) =>
+  API.put(`/listings/${id}/sold`, { sold });
 
 export default API;

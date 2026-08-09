@@ -26,9 +26,12 @@ const getAllListings = async (req, res) => {
 const getListingById = async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query("SELECT * FROM listings WHERE id = $1", [
-      id,
-    ]);
+    const result = await pool.query(
+      `UPDATE listings SET views_count = COALESCE(views_count, 0) + 1
+       WHERE id = $1
+       RETURNING *`,
+      [id],
+    );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Listing not found" });
     }
@@ -219,6 +222,58 @@ const updateListingStatus = async (req, res) => {
   }
 };
 
+// PUT toggle a listing between approved and sold. Deliberately narrow —
+// unlike the admin status endpoint, this can't approve/reject/unpublish,
+// it can only flip a currently-approved listing to sold (or back), and
+// only the listing's own agent (or an admin) can do it.
+const markListingSold = async (req, res) => {
+  const { id } = req.params;
+  const { sold } = req.body;
+  const agent_id = req.user.userId;
+  const isAdmin = req.user.role === "admin";
+
+  try {
+    const listingResult = await pool.query(
+      "SELECT status, agent_id FROM listings WHERE id = $1",
+      [id],
+    );
+    if (listingResult.rows.length === 0) {
+      return res.status(404).json({ error: "Listing not found" });
+    }
+
+    const listing = listingResult.rows[0];
+    if (!isAdmin && listing.agent_id !== agent_id) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    let newStatus;
+    if (sold) {
+      if (listing.status !== "approved") {
+        return res
+          .status(400)
+          .json({ error: "Only an approved listing can be marked sold" });
+      }
+      newStatus = "sold";
+    } else {
+      if (listing.status !== "sold") {
+        return res
+          .status(400)
+          .json({ error: "This listing isn't marked sold" });
+      }
+      newStatus = "approved";
+    }
+
+    const result = await pool.query(
+      "UPDATE listings SET status = $1 WHERE id = $2 RETURNING *",
+      [newStatus, id],
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Mark listing sold error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 module.exports = {
   getAllListings,
   getListingById,
@@ -226,4 +281,5 @@ module.exports = {
   updateListing,
   deleteListing,
   updateListingStatus,
+  markListingSold,
 };

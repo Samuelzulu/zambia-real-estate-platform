@@ -107,6 +107,7 @@ function AdminDashboard() {
     if (status === "approved") return styles.statusApproved;
     if (status === "rejected") return styles.statusRejected;
     if (status === "unpublished") return styles.statusUnpublished;
+    if (status === "sold") return styles.statusSold;
     return styles.statusPending;
   };
 
@@ -226,21 +227,26 @@ function AdminDashboard() {
         {activeTab === "listings" && (
           <div>
             <div style={styles.filterRow}>
-              {["all", "pending", "approved", "rejected", "unpublished"].map(
-                (status) => (
-                  <button
-                    key={status}
-                    onClick={() => setListingFilter(status)}
-                    style={
-                      listingFilter === status
-                        ? styles.filterActive
-                        : styles.filterInactive
-                    }
-                  >
-                    {status[0].toUpperCase() + status.slice(1)}
-                  </button>
-                ),
-              )}
+              {[
+                "all",
+                "pending",
+                "approved",
+                "rejected",
+                "unpublished",
+                "sold",
+              ].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setListingFilter(status)}
+                  style={
+                    listingFilter === status
+                      ? styles.filterActive
+                      : styles.filterInactive
+                  }
+                >
+                  {status[0].toUpperCase() + status.slice(1)}
+                </button>
+              ))}
             </div>
 
             {loading ? (
@@ -632,6 +638,15 @@ const styles = {
     padding: "3px 10px",
     backgroundColor: "#F1F5F9",
     color: "#475569",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "700",
+  },
+  statusSold: {
+    display: "inline-block",
+    padding: "3px 10px",
+    backgroundColor: "#E0E7FF",
+    color: "#3730A3",
     borderRadius: "20px",
     fontSize: "12px",
     fontWeight: "700",
